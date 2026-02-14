@@ -5,8 +5,8 @@ export function HomePage() {
   const { user } = useAuth();
 
   return (
-    <div className="py-10 sm:py-16 lg:py-20 px-2 text-center">
-      <div className="max-w-2xl mx-auto">
+    <div className="py-12 sm:py-20 lg:py-28 px-4 text-center">
+      <div className="max-w-2xl mx-auto rounded-3xl bg-gradient-to-br from-primary-50/80 via-white to-orange-50/60 border border-primary-100/60 p-8 sm:p-12 shadow-lg">
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-content">
           Plan meals. Cook smarter.
         </h1>

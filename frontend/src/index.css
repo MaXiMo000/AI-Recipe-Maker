@@ -46,6 +46,12 @@
   --loader-size: 2rem;
   --loader-color: var(--color-primary);
   --loader-track: var(--color-border);
+
+  /* Premium UI */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 10px 40px -10px rgba(0,0,0,0.12);
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
 }
 
 @tailwind base;
@@ -57,7 +63,8 @@
     scroll-behavior: smooth;
   }
   body {
-    background-color: var(--color-bg);
+    background: linear-gradient(180deg, #fefcfb 0%, var(--color-bg) 12rem);
+    background-attachment: fixed;
     color: var(--color-text);
     font-family: 'DM Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -69,10 +76,28 @@
 @layer components {
   /* Reusable card for sections and list items */
   .card-section {
-    @apply rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 sm:p-5 shadow-sm;
+    @apply rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 sm:p-5;
+    box-shadow: var(--shadow-card);
   }
   .card-interactive {
-    @apply rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-[var(--color-border-strong)];
+    @apply rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 transition-all duration-300;
+    box-shadow: var(--shadow-card);
+  }
+  .card-interactive:hover {
+    box-shadow: var(--shadow-card-hover);
+    @apply border-primary-200 -translate-y-0.5;
+  }
+  .pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .pill-primary {
+    @apply pill bg-primary-100 text-primary-800;
+  }
+  .pill-muted {
+    @apply pill bg-[var(--color-surface)] text-[var(--color-text-muted)];
+  }
+  .section-heading {
+    @apply font-display text-lg font-semibold text-content mb-3 pb-2 border-b-2 border-primary-100;
   }
   /* Form inputs – consistent focus ring (no opacity in @apply: Tailwind can fail with theme+opacity) */
   .input-base {

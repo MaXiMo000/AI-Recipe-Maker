@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { Loader } from '@/components/ui/Loader';
+import { formatDateRange } from '@/utils/format';
 
 export function MealPlansPage() {
   const queryClient = useQueryClient();
@@ -44,7 +45,7 @@ export function MealPlansPage() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
           <h1 className="page-title">Meal plans</h1>
           <p className="page-subtitle">Plan your week and get a shopping list.</p>
@@ -60,7 +61,7 @@ export function MealPlansPage() {
 
       {showForm && (
         <div className="mt-6 card-section max-w-md">
-          <label className="block text-sm font-medium text-content-muted">Number of days (1–14)</label>
+          <label className="block text-sm font-medium text-content-muted mb-2">Number of days (1–14)</label>
           <div className="mt-3 flex flex-col sm:flex-row gap-3 sm:items-center">
             <input
               type="number"
@@ -82,10 +83,10 @@ export function MealPlansPage() {
         </div>
       )}
 
-      <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
         {list.length === 0 ? (
-          <div className="col-span-full card-section text-center py-12">
-            <p className="text-content-muted">No meal plans yet.</p>
+          <div className="col-span-full rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-white/50 p-12 text-center">
+            <p className="text-content-muted font-medium">No meal plans yet.</p>
             <p className="mt-1 text-sm text-content-subtle">Create one using the button above.</p>
           </div>
         ) : (
@@ -93,14 +94,17 @@ export function MealPlansPage() {
             <Link
               key={plan.id}
               to={`/meal-plans/${plan.id}`}
-              className="card-interactive group block"
+              className="card-interactive group block overflow-hidden"
             >
-              <h2 className="font-semibold text-content group-hover:text-primary-600 transition-colors">
-                {plan.name}
-              </h2>
-              <p className="mt-1.5 text-sm text-content-subtle">
-                {plan.startDate} – {plan.endDate}
-              </p>
+              <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
+              <div className="p-4 sm:p-5">
+                <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors text-lg">
+                  {plan.name}
+                </h2>
+                <p className="mt-2 text-sm text-content-muted">
+                  {formatDateRange(plan.startDate, plan.endDate)}
+                </p>
+              </div>
             </Link>
           ))
         )}

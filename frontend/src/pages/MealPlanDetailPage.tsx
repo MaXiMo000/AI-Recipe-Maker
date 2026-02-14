@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { Loader } from '@/components/ui/Loader';
+import { formatDate, formatDateRange } from '@/utils/format';
 
 export function MealPlanDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,26 +42,42 @@ export function MealPlanDetailPage() {
   const list = Array.isArray(shoppingList) ? shoppingList : [];
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto pb-12">
       <Link to="/meal-plans" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50 transition-colors">
         <span aria-hidden>←</span> Meal plans
       </Link>
-      <div className="mt-4 card-section">
-        <h1 className="page-title">{plan.name}</h1>
-        <p className="page-subtitle">{plan.startDate} – {plan.endDate}</p>
-      </div>
 
-      <section className="mt-6 sm:mt-8">
-        <h2 className="font-display text-lg font-semibold text-content mb-3">Meals by day</h2>
+      <header className="mt-4 rounded-2xl bg-gradient-to-br from-primary-50 via-white to-orange-50/50 border border-primary-100/80 p-5 sm:p-6 shadow-sm">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-content tracking-tight">
+          {plan.name}
+        </h1>
+        <p className="mt-2 text-content-muted">
+          {formatDateRange(plan.startDate, plan.endDate)}
+        </p>
+      </header>
+
+      <section className="mt-8">
+        <h2 className="section-heading">Meals by day</h2>
         <div className="space-y-4">
           {days.map((day: any, i: number) => (
-            <div key={i} className="card-section">
-              <h3 className="font-medium text-content">Day {day.day} {day.date && `(${day.date})`}</h3>
-              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            <div key={i} className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] overflow-hidden">
+              <div className="px-4 py-3 sm:px-5 bg-primary-50/50 border-b border-primary-100/50">
+                <h3 className="font-display font-semibold text-content">
+                  Day {day.day}
+                  {day.date && (
+                    <span className="ml-2 font-normal text-content-muted">
+                      {formatDate(day.date)}
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3">
                 {day.meals && Object.entries(day.meals).map(([slot, meal]: [string, any]) => (
-                  <div key={slot} className="text-sm">
-                    <span className="capitalize text-content-subtle">{slot}:</span>{' '}
-                    {Array.isArray(meal) ? meal.map((m: any) => m?.title).filter(Boolean).join(', ') : meal?.title ?? '—'}
+                  <div key={slot} className="rounded-xl bg-[var(--color-surface)]/50 p-3">
+                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider capitalize">{slot}</span>
+                    <p className="mt-1 text-sm text-content">
+                      {Array.isArray(meal) ? meal.map((m: any) => m?.title).filter(Boolean).join(', ') : meal?.title ?? '—'}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -69,15 +86,20 @@ export function MealPlanDetailPage() {
         </div>
       </section>
 
-      <section className="mt-6 sm:mt-8">
-        <h2 className="font-display text-lg font-semibold text-content mb-3">Shopping list</h2>
-        <ul className="card-section space-y-2 list-none p-0">
+      <section className="mt-8">
+        <h2 className="section-heading">Shopping list</h2>
+        <ul className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] divide-y divide-[var(--color-border)] overflow-hidden">
           {list.length === 0 ? (
-            <li className="text-content-subtle py-2">No items</li>
+            <li className="px-4 py-6 text-center text-content-subtle">No items</li>
           ) : (
             list.map((item: any, i: number) => (
-              <li key={i} className="py-1.5 border-b border-divider last:border-0 text-content-muted">
-                {item.amount} {item.unit} {item.ingredient}
+              <li key={i} className="px-4 py-3 sm:px-5 flex items-center gap-3 hover:bg-primary-50/30 transition-colors">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-medium">
+                  {i + 1}
+                </span>
+                <span className="text-content">
+                  {item.amount} {item.unit} {item.ingredient}
+                </span>
               </li>
             ))
           )}

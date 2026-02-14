@@ -24,10 +24,12 @@ export function NutritionPage() {
 
   return (
     <div className="w-full">
-      <h1 className="page-title">Nutrition</h1>
-      <p className="page-subtitle">Daily summary from your meal plans.</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="page-title">Nutrition</h1>
+        <p className="page-subtitle">Daily summary from your meal plans.</p>
+      </div>
 
-      <div className="mt-6 card-section max-w-xs">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] p-4 sm:p-5 max-w-xs">
         <label className="block text-sm font-medium text-content-muted mb-2">Date</label>
         <input
           type="date"
@@ -41,21 +43,21 @@ export function NutritionPage() {
         <Loader variant="inline" label="Loading summary…" className="mt-6" />
       ) : (
         <div className="mt-6 sm:mt-8 grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-          <div className="card-section text-center py-5">
-            <p className="text-sm font-medium text-content-subtle uppercase tracking-wider">Calories</p>
-            <p className="text-2xl sm:text-3xl font-semibold text-content mt-1">{calories}</p>
+          <div className="rounded-2xl bg-amber-50/80 border border-amber-100 p-5 text-center shadow-sm">
+            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Calories</p>
+            <p className="text-2xl sm:text-3xl font-bold text-amber-900 mt-1">{calories}</p>
           </div>
-          <div className="card-section text-center py-5">
-            <p className="text-sm font-medium text-content-subtle uppercase tracking-wider">Protein (g)</p>
-            <p className="text-2xl sm:text-3xl font-semibold text-content mt-1">{protein}</p>
+          <div className="rounded-2xl bg-emerald-50/80 border border-emerald-100 p-5 text-center shadow-sm">
+            <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Protein (g)</p>
+            <p className="text-2xl sm:text-3xl font-bold text-emerald-900 mt-1">{protein}</p>
           </div>
-          <div className="card-section text-center py-5">
-            <p className="text-sm font-medium text-content-subtle uppercase tracking-wider">Carbs (g)</p>
-            <p className="text-2xl sm:text-3xl font-semibold text-content mt-1">{carbs}</p>
+          <div className="rounded-2xl bg-sky-50/80 border border-sky-100 p-5 text-center shadow-sm">
+            <p className="text-xs font-semibold text-sky-800 uppercase tracking-wider">Carbs (g)</p>
+            <p className="text-2xl sm:text-3xl font-bold text-sky-900 mt-1">{carbs}</p>
           </div>
-          <div className="card-section text-center py-5">
-            <p className="text-sm font-medium text-content-subtle uppercase tracking-wider">Fat (g)</p>
-            <p className="text-2xl sm:text-3xl font-semibold text-content mt-1">{fat}</p>
+          <div className="rounded-2xl bg-rose-50/80 border border-rose-100 p-5 text-center shadow-sm">
+            <p className="text-xs font-semibold text-rose-800 uppercase tracking-wider">Fat (g)</p>
+            <p className="text-2xl sm:text-3xl font-bold text-rose-900 mt-1">{fat}</p>
           </div>
         </div>
       )}

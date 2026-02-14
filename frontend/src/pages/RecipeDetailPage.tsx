@@ -53,9 +53,9 @@ export function RecipeDetailPage() {
   const metaItems = [recipe.cuisineType, recipe.mealType, recipe.difficulty].filter(Boolean);
 
   return (
-    <div className="w-full max-w-3xl mx-auto" {...swipeHandlers}>
+    <div className="w-full max-w-3xl mx-auto pb-12" {...swipeHandlers}>
       {/* Back + actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
         <Link
           to="/recipes"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50"
@@ -73,54 +73,53 @@ export function RecipeDetailPage() {
         </button>
       </div>
 
-      {/* Title block */}
-      <div className="card-section mb-6">
-        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-semibold text-content tracking-tight leading-tight">
+      {/* Hero title block */}
+      <header className="rounded-2xl bg-gradient-to-br from-primary-50 via-white to-orange-50/50 border border-primary-100/80 p-5 sm:p-6 mb-6 shadow-sm">
+        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-content tracking-tight leading-tight">
           {recipe.title}
         </h1>
         {recipe.description && (
-          <p className="mt-3 text-content-muted leading-relaxed">{recipe.description}</p>
+          <p className="mt-3 text-content-muted leading-relaxed text-sm sm:text-base max-w-2xl">
+            {recipe.description}
+          </p>
         )}
-        <div className="mt-4 flex flex-wrap gap-2 items-center text-sm text-content-subtle">
-          {metaItems.length > 0 && (
-            <span>{metaItems.join(' · ')}</span>
-          )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {metaItems.map((item: string) => (
+            <span key={item} className="pill-primary">{item}</span>
+          ))}
           {totalMins > 0 && (
-            <>
-              {metaItems.length > 0 && <span>·</span>}
-              <span>{totalMins} min</span>
-            </>
+            <span className="pill-muted">{totalMins} min</span>
           )}
         </div>
-      </div>
+      </header>
 
       {/* Nutrition */}
       {Object.keys(nutrition).length > 0 && (
-        <section className="mb-6">
-          <h2 className="font-display text-lg font-semibold text-content mb-3">Nutrition (per serving)</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <section className="mb-8">
+          <h2 className="section-heading">Nutrition (per serving)</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {nutrition.calories != null && (
-              <div className="card-section text-center py-3">
-                <p className="text-xs font-medium text-content-subtle uppercase tracking-wider">Calories</p>
-                <p className="text-xl font-semibold text-content mt-0.5">{nutrition.calories}</p>
+              <div className="rounded-xl bg-amber-50/80 border border-amber-100 p-4 text-center">
+                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Calories</p>
+                <p className="text-2xl font-bold text-amber-900 mt-1">{nutrition.calories}</p>
               </div>
             )}
             {nutrition.protein != null && (
-              <div className="card-section text-center py-3">
-                <p className="text-xs font-medium text-content-subtle uppercase tracking-wider">Protein</p>
-                <p className="text-xl font-semibold text-content mt-0.5">{nutrition.protein}g</p>
+              <div className="rounded-xl bg-emerald-50/80 border border-emerald-100 p-4 text-center">
+                <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Protein</p>
+                <p className="text-2xl font-bold text-emerald-900 mt-1">{nutrition.protein}g</p>
               </div>
             )}
             {nutrition.carbs != null && (
-              <div className="card-section text-center py-3">
-                <p className="text-xs font-medium text-content-subtle uppercase tracking-wider">Carbs</p>
-                <p className="text-xl font-semibold text-content mt-0.5">{nutrition.carbs}g</p>
+              <div className="rounded-xl bg-sky-50/80 border border-sky-100 p-4 text-center">
+                <p className="text-xs font-semibold text-sky-800 uppercase tracking-wider">Carbs</p>
+                <p className="text-2xl font-bold text-sky-900 mt-1">{nutrition.carbs}g</p>
               </div>
             )}
             {nutrition.fat != null && (
-              <div className="card-section text-center py-3">
-                <p className="text-xs font-medium text-content-subtle uppercase tracking-wider">Fat</p>
-                <p className="text-xl font-semibold text-content mt-0.5">{nutrition.fat}g</p>
+              <div className="rounded-xl bg-rose-50/80 border border-rose-100 p-4 text-center">
+                <p className="text-xs font-semibold text-rose-800 uppercase tracking-wider">Fat</p>
+                <p className="text-2xl font-bold text-rose-900 mt-1">{nutrition.fat}g</p>
               </div>
             )}
           </div>
@@ -128,15 +127,18 @@ export function RecipeDetailPage() {
       )}
 
       {/* Ingredients */}
-      <section className="mb-6">
-        <h2 className="font-display text-lg font-semibold text-content mb-3">Ingredients</h2>
-        <ul className="card-section space-y-2 list-none p-0">
+      <section className="mb-8">
+        <h2 className="section-heading">Ingredients</h2>
+        <ul className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] divide-y divide-[var(--color-border)] overflow-hidden">
           {ingredients.map((ing: any, i: number) => (
-            <li key={i} className="flex items-start gap-2 py-1.5 border-b border-divider last:border-0 last:pb-0 first:pt-0">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-medium mt-0.5">
+            <li
+              key={i}
+              className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5 bg-white hover:bg-primary-50/30 transition-colors"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-500 text-white text-xs font-bold">
                 {i + 1}
               </span>
-              <span className="text-content-muted">
+              <span className="text-content min-w-0">
                 {typeof ing === 'string'
                   ? ing
                   : [ing.amount, ing.unit, ing.name || ing.ingredient].filter(Boolean).join(' ')}
@@ -148,20 +150,26 @@ export function RecipeDetailPage() {
 
       {/* Instructions */}
       <section>
-        <h2 className="font-display text-lg font-semibold text-content mb-3">Instructions</h2>
-        <ol className="space-y-3 list-none p-0">
-          {instructions.map((item: { step?: number; instruction?: string; time?: number } | string, i: number) => {
-            const text = typeof item === 'string' ? item : (item.instruction ?? (item as any).text ?? '');
-            return (
-              <li key={i} className="card-section flex gap-4 items-start">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white text-sm font-semibold">
-                  {i + 1}
-                </span>
-                <p className="text-content-muted leading-relaxed pt-0.5 flex-1 min-w-0">{text}</p>
-              </li>
-            );
-          })}
-        </ol>
+        <h2 className="section-heading">Instructions</h2>
+        <div className="relative">
+          {/* vertical line on desktop */}
+          <div className="hidden sm:block absolute left-4 top-2 bottom-2 w-0.5 bg-primary-100 rounded-full" aria-hidden />
+          <ol className="space-y-4 list-none p-0">
+            {instructions.map((item: { step?: number; instruction?: string; time?: number } | string, i: number) => {
+              const text = typeof item === 'string' ? item : (item.instruction ?? (item as any).text ?? '');
+              return (
+                <li key={i} className="relative flex gap-4 sm:gap-5 items-start">
+                  <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white text-sm font-bold shadow-md">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0 rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-card)]">
+                    <p className="text-content leading-relaxed">{text}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </section>
     </div>
   );

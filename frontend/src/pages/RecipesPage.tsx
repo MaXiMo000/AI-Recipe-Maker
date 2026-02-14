@@ -40,41 +40,50 @@ export function RecipesPage() {
 
   return (
     <div className="w-full">
-      <h1 className="page-title">My recipes</h1>
-      <p className="page-subtitle">Recipes you’ve created or saved.</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="page-title">My recipes</h1>
+        <p className="page-subtitle">Recipes you’ve created or saved.</p>
+      </div>
 
-      <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
         {recipes.length === 0 ? (
-          <div className="col-span-full card-section text-center py-12 max-w-md mx-auto">
-            <p className="text-content-muted">No recipes yet.</p>
+          <div className="col-span-full rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-white/50 p-12 text-center max-w-md mx-auto">
+            <p className="text-content-muted font-medium">No recipes yet.</p>
             <p className="mt-1 text-sm text-content-subtle">Generate one from the Generate page.</p>
             <Link
               to="/generate"
-              className="btn-primary inline-flex mt-4 w-full sm:w-auto justify-center"
+              className="btn-primary inline-flex mt-6 w-full sm:w-auto justify-center"
             >
               Generate recipe
             </Link>
           </div>
         ) : (
-          recipes.map((r) => (
-            <Link
-              key={r.id}
-              to={`/recipes/${r.id}`}
-              className="card-interactive group block"
-            >
-              <h2 className="font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2">
-                {r.title}
-              </h2>
-              <p className="mt-1.5 text-sm text-content-subtle">
-                {[r.cuisineType, r.mealType, r.difficulty].filter(Boolean).join(' · ') || '—'}
-              </p>
-              {(r.prepTime != null || r.cookTime != null) && (
-                <p className="mt-1 text-xs text-content-subtle">
-                  {(r.prepTime ?? 0) + (r.cookTime ?? 0)} min
-                </p>
-              )}
-            </Link>
-          ))
+          recipes.map((r) => {
+            const totalMins = (r.prepTime ?? 0) + (r.cookTime ?? 0);
+            const meta = [r.cuisineType, r.mealType, r.difficulty].filter(Boolean);
+            return (
+              <Link
+                key={r.id}
+                to={`/recipes/${r.id}`}
+                className="card-interactive group block overflow-hidden"
+              >
+                <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
+                <div className="p-4 sm:p-5">
+                  <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
+                    {r.title}
+                  </h2>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {meta.slice(0, 3).map((m) => (
+                      <span key={m} className="pill-muted">{m}</span>
+                    ))}
+                  </div>
+                  {totalMins > 0 && (
+                    <p className="mt-2 text-xs font-medium text-primary-600">{totalMins} min</p>
+                  )}
+                </div>
+              </Link>
+            );
+          })
         )}
       </div>
     </div>
