@@ -1,0 +1,36 @@
+# Development override: mount source so code updates apply without rebuilding.
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Backend: runs npm ci then nodemon + ts-node (so @types are available).
+# Frontend: uses Node image (not nginx); Vite dev server for HMR.
+# Use --build the first time or when * Dockerfile.dev * changes.
+
+services:
+  frontend:
+    image: ai-recipe-maker-frontend:dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:5000
+      - VITE_PROXY_TARGET=http://backend:5000
+    command: npm run dev
+
+  backend:
+    image: ai-recipe-maker-backend:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - backend_node_modules:/app/node_modules
+    command: sh -c "npm ci && npx nodemon --exec 'npx ts-node app.ts' --ext ts"
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  frontend_node_modules:
+  backend_node_modules:

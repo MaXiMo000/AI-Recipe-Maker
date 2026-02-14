@@ -1,0 +1,510 @@
+import { Response } from 'express';
+import { AuthRequest } from './auth';
+import { RecipeAIService } from './recipeAIService';
+import { query } from './database';
+import { invalidateRecipe, invalidateRecipeForUser } from './cacheInvalidation';
+import { cache } from './redis';
+import { AppError, asyncHandler } from './errorHandler';
+import { logger } from './logger';
+import { Recipe, UserPreferences, RecipeModifications } from './recipe';
+import {
+  sendCreated,
+  sendPaginated,
+  sendSuccess,
+} from './responseHelper';
+import { z } from 'zod';
+
+const recipeAIService = new RecipeAIService();
+
+// Validation schemas
+const generateRecipeSchema = z.object({
+  ingredients: z.array(z.string()).min(1, 'At least one ingredient required'),
+  preferences: z.object({
+    dietary: z.array(z.string()).optional(),
+    allergies: z.array(z.string()).optional(),
+    skillLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+    cuisine: z.string().optional(),
+    mealType: z.string().optional(),
+    maxCookTime: z.number().optional(),
+  }).optional(),
+});
+
+const modifyRecipeSchema = z.object({
+  modifications: z.object({
+    servings: z.number().optional(),
+    dietary: z.array(z.string()).optional(),
+    substitutions: z.record(z.string()).optional(),
+    reduceTime: z.boolean().optional(),
+    simplify: z.boolean().optional(),
+    makeHealthier: z.boolean().optional(),
+  }),
+});
+
+class RecipeController {
+  /**
+   * Generate a new recipe using AI
+   */
+  generateRecipe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { ingredients, preferences } = generateRecipeSchema.parse(req.body);
+    const userId = req.user!.id;
+
+    logger.info('Generating recipe', { userId, ingredientCount: ingredients.length });
+
+    // Get user preferences from database if not provided
+    let userPrefs: UserPreferences = preferences || {};
+    if (!preferences) {
+      const userResult = await query(
+        'SELECT dietary_preferences, allergies, skill_level FROM users WHERE id = $1',
+        [userId]
+      );
+      if (userResult.rows.length > 0) {
+        const user = userResult.rows[0] as {
+          dietary_preferences: string[] | null;
+          allergies: string[] | null;
+          skill_level: string | null;
+        };
+        userPrefs = {
+          dietary: user.dietary_preferences ?? undefined,
+          allergies: user.allergies ?? undefined,
+          skillLevel: (user.skill_level as UserPreferences['skillLevel']) ?? undefined,
+        };
+      }
+    }
+
+    // Check recipe database for similar recipes (hybrid approach)
+    const similarRecipes = await this.findSimilarRecipes(ingredients);
+    if (similarRecipes.length > 0) {
+      logger.info('Found similar recipes in database', { count: similarRecipes.length });
+      // Could use these as context for AI generation
+    }
+
+    // Generate recipe with AI
+    const recipe = await recipeAIService.generateRecipe(ingredients, userPrefs);
+
+    // Save to database
+    const result = await query(
+      `INSERT INTO recipes (
+        user_id, title, description, cuisine_type, meal_type, difficulty,
+        prep_time, cook_time, servings, ingredients, instructions,
+        nutritional_info, tags, source, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        userId,
+        recipe.title,
+        recipe.description,
+        recipe.cuisineType,
+        recipe.mealType,
+        recipe.difficulty,
+        recipe.prepTime,
+        recipe.cookTime,
+        recipe.servings,
+        JSON.stringify(recipe.ingredients),
+        JSON.stringify(recipe.instructions),
+        JSON.stringify(recipe.nutritionalInfo),
+        JSON.stringify(recipe.tags),
+        'ai_generated',
+        false,
+      ]
+    );
+
+    const savedRecipe = this.formatRecipe(result.rows[0]);
+
+    await invalidateRecipeForUser(userId);
+
+    sendCreated(res, savedRecipe);
+  });
+
+  /**
+   * Modify an existing recipe
+   */
+  modifyRecipe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { modifications } = modifyRecipeSchema.parse(req.body);
+    const userId = req.user!.id;
+
+    // Get original recipe
+    const recipeResult = await query(
+      'SELECT * FROM recipes WHERE id = $1',
+      [id]
+    );
+
+    if (recipeResult.rows.length === 0) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    const originalRecipe = this.formatRecipe(recipeResult.rows[0]);
+
+    // Generate modified recipe with AI
+    const modifiedRecipe = await recipeAIService.modifyRecipe(
+      originalRecipe,
+      modifications as RecipeModifications
+    );
+
+    // Save as new recipe
+    const result = await query(
+      `INSERT INTO recipes (
+        user_id, title, description, cuisine_type, meal_type, difficulty,
+        prep_time, cook_time, servings, ingredients, instructions,
+        nutritional_info, tags, source, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        userId,
+        modifiedRecipe.title + ' (Modified)',
+        modifiedRecipe.description,
+        modifiedRecipe.cuisineType,
+        modifiedRecipe.mealType,
+        modifiedRecipe.difficulty,
+        modifiedRecipe.prepTime,
+        modifiedRecipe.cookTime,
+        modifiedRecipe.servings,
+        JSON.stringify(modifiedRecipe.ingredients),
+        JSON.stringify(modifiedRecipe.instructions),
+        JSON.stringify(modifiedRecipe.nutritionalInfo),
+        JSON.stringify(modifiedRecipe.tags),
+        'ai_generated',
+        false,
+      ]
+    );
+
+    sendSuccess(res, this.formatRecipe(result.rows[0]));
+  });
+
+  /**
+   * Get recipe suggestions based on pantry
+   */
+  getSuggestions = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { pantryItems } = req.body;
+    const userId = req.user!.id;
+
+    if (!pantryItems || !Array.isArray(pantryItems) || pantryItems.length === 0) {
+      throw new AppError('Pantry items required', 400);
+    }
+
+    // Get user preferences
+    const userResult = await query(
+      'SELECT dietary_preferences, allergies, skill_level FROM users WHERE id = $1',
+      [userId]
+    );
+
+    const userPrefs: UserPreferences = userResult.rows.length > 0
+      ? (() => {
+          const user = userResult.rows[0] as {
+            dietary_preferences: string[] | null;
+            allergies: string[] | null;
+            skill_level: string | null;
+          };
+          return {
+            dietary: user.dietary_preferences ?? undefined,
+            allergies: user.allergies ?? undefined,
+            skillLevel: (user.skill_level as UserPreferences['skillLevel']) ?? undefined,
+          };
+        })()
+      : {};
+
+    const suggestions = await recipeAIService.suggestRecipes(pantryItems, userPrefs);
+
+    sendSuccess(res, suggestions);
+  });
+
+  /**
+   * Get all recipes with filters
+   */
+  getRecipes = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const {
+      page = 1,
+      limit = 20,
+      cuisineType,
+      mealType,
+      difficulty,
+      tags: _tags,
+      userId: filterUserId,
+    } = req.query;
+
+    const offset = (Number(page) - 1) * Number(limit);
+    let whereConditions: string[] = [];
+    let params: any[] = [];
+    let paramIndex = 1;
+
+    // Build WHERE conditions
+    if (cuisineType) {
+      whereConditions.push(`cuisine_type = $${paramIndex++}`);
+      params.push(cuisineType);
+    }
+    if (mealType) {
+      whereConditions.push(`meal_type = $${paramIndex++}`);
+      params.push(mealType);
+    }
+    if (difficulty) {
+      whereConditions.push(`difficulty = $${paramIndex++}`);
+      params.push(difficulty);
+    }
+    if (filterUserId) {
+      whereConditions.push(`user_id = $${paramIndex++}`);
+      params.push(filterUserId);
+    } else {
+      // Only show public recipes if not filtering by user
+      whereConditions.push('is_public = true');
+    }
+
+    const whereClause = whereConditions.length > 0
+      ? 'WHERE ' + whereConditions.join(' AND ')
+      : '';
+
+    // Get total count
+    const countResult = await query(
+      `SELECT COUNT(*) FROM recipes ${whereClause}`,
+      params
+    );
+    const total = parseInt(String(countResult.rows[0].count), 10);
+
+    // Get recipes
+    const result = await query(
+      `SELECT * FROM recipes ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+      [...params, limit, offset]
+    );
+
+    const recipes = result.rows.map((row: Record<string, unknown>) => this.formatRecipe(row));
+
+    sendPaginated(res, recipes, {
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      totalPages: Math.ceil(total / Number(limit)),
+    });
+  });
+
+  /**
+   * Get single recipe by ID
+   */
+  getRecipeById = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+
+    // Check cache first
+    const cached = await cache.get(`recipe:${id}`);
+    if (cached) {
+      return sendSuccess(res, cached);
+    }
+
+    const result = await query('SELECT * FROM recipes WHERE id = $1', [id]);
+
+    if (result.rows.length === 0) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    const recipe = this.formatRecipe(result.rows[0]);
+
+    // Cache for 1 hour
+    await cache.set(`recipe:${id}`, recipe, 3600);
+
+    return sendSuccess(res, recipe);
+  });
+
+  /**
+   * Create custom recipe (user-created)
+   */
+  createRecipe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.id;
+    const recipeData = req.body;
+
+    const result = await query(
+      `INSERT INTO recipes (
+        user_id, title, description, cuisine_type, meal_type, difficulty,
+        prep_time, cook_time, servings, ingredients, instructions,
+        nutritional_info, tags, source, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        userId,
+        recipeData.title,
+        recipeData.description,
+        recipeData.cuisineType,
+        recipeData.mealType,
+        recipeData.difficulty,
+        recipeData.prepTime,
+        recipeData.cookTime,
+        recipeData.servings,
+        JSON.stringify(recipeData.ingredients),
+        JSON.stringify(recipeData.instructions),
+        JSON.stringify(recipeData.nutritionalInfo),
+        JSON.stringify(recipeData.tags || []),
+        'user_created',
+        recipeData.isPublic || false,
+      ]
+    );
+
+    await invalidateRecipeForUser(userId);
+
+    sendCreated(res, this.formatRecipe(result.rows[0]));
+  });
+
+  /**
+   * Update recipe
+   */
+  updateRecipe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const updates = req.body;
+
+    // Verify ownership
+    const checkResult = await query(
+      'SELECT user_id FROM recipes WHERE id = $1',
+      [id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    if (checkResult.rows[0].user_id !== userId) {
+      throw new AppError('Not authorized to update this recipe', 403);
+    }
+
+    // Update recipe
+    const result = await query(
+      `UPDATE recipes SET
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        ingredients = COALESCE($3, ingredients),
+        instructions = COALESCE($4, instructions),
+        updated_at = NOW()
+      WHERE id = $5
+      RETURNING *`,
+      [
+        updates.title,
+        updates.description,
+        updates.ingredients ? JSON.stringify(updates.ingredients) : null,
+        updates.instructions ? JSON.stringify(updates.instructions) : null,
+        id,
+      ]
+    );
+
+    await invalidateRecipe(id, userId);
+
+    sendSuccess(res, this.formatRecipe(result.rows[0]));
+  });
+
+  /**
+   * Delete recipe
+   */
+  deleteRecipe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Verify ownership
+    const checkResult = await query(
+      'SELECT user_id FROM recipes WHERE id = $1',
+      [id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    if (checkResult.rows[0].user_id !== userId) {
+      throw new AppError('Not authorized to delete this recipe', 403);
+    }
+
+    await query('DELETE FROM recipes WHERE id = $1', [id]);
+    await invalidateRecipe(id, userId);
+
+    sendSuccess(res, null, 'Recipe deleted successfully');
+  });
+
+  /**
+   * Add recipe to favorites
+   */
+  addToFavorites = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    await query(
+      'INSERT INTO user_favorites (user_id, recipe_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, id]
+    );
+
+    sendSuccess(res, null, 'Added to favorites');
+  });
+
+  /**
+   * Remove recipe from favorites
+   */
+  removeFromFavorites = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    await query(
+      'DELETE FROM user_favorites WHERE user_id = $1 AND recipe_id = $2',
+      [userId, id]
+    );
+
+    sendSuccess(res, null, 'Removed from favorites');
+  });
+
+  /**
+   * Get user's favorite recipes
+   */
+  getFavorites = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.id;
+
+    const result = await query(
+      `SELECT r.* FROM recipes r
+       JOIN user_favorites f ON r.id = f.recipe_id
+       WHERE f.user_id = $1
+       ORDER BY f.created_at DESC`,
+      [userId]
+    );
+
+    const recipes = result.rows.map((row: Record<string, unknown>) => this.formatRecipe(row));
+
+    sendSuccess(res, recipes);
+  });
+
+  /**
+   * Helper: Find similar recipes in database
+   */
+  private async findSimilarRecipes(ingredients: string[]): Promise<any[]> {
+    // Simple implementation - could be enhanced with better matching
+    const result = await query(
+      `SELECT * FROM recipe_database
+       WHERE ingredients ?| $1
+       ORDER BY popularity_score DESC
+       LIMIT 5`,
+      [ingredients]
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Helper: Format recipe from database row
+   */
+  private formatRecipe(row: any): Recipe {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      title: row.title,
+      description: row.description,
+      cuisineType: row.cuisine_type,
+      mealType: row.meal_type,
+      difficulty: row.difficulty,
+      prepTime: row.prep_time,
+      cookTime: row.cook_time,
+      servings: row.servings,
+      ingredients: row.ingredients,
+      instructions: row.instructions,
+      nutritionalInfo: row.nutritional_info,
+      tags: row.tags,
+      imageUrl: row.image_url,
+      source: row.source,
+      isPublic: row.is_public,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+}
+
+export const recipeController = new RecipeController();
