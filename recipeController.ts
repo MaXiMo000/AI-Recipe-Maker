@@ -243,8 +243,12 @@ class RecipeController {
     if (filterUserId) {
       whereConditions.push(`user_id = $${paramIndex++}`);
       params.push(filterUserId);
+    } else if (req.user) {
+      // Logged in, no filter: show this user's recipes (my recipes)
+      whereConditions.push(`user_id = $${paramIndex++}`);
+      params.push(req.user.id);
     } else {
-      // Only show public recipes if not filtering by user
+      // Not logged in: only public recipes
       whereConditions.push('is_public = true');
     }
 

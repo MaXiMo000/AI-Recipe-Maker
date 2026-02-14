@@ -27,7 +27,7 @@ services:
     volumes:
       - .:/app
       - backend_node_modules:/app/node_modules
-    command: sh -c "npm ci && npx nodemon --exec 'npx ts-node app.ts' --ext ts"
+    command: sh -c "npm ci && npx nodemon --exec 'node scripts/dev-entry.cjs' --ext ts"
     environment:
       - NODE_ENV=development
 

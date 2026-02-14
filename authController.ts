@@ -134,7 +134,7 @@ class AuthController {
   /**
    * Logout user
    */
-  logout = asyncHandler(async (_req: AuthRequest, res: Response) => {
+  logout = asyncHandler(async (_req: Request, res: Response) => {
     res.clearCookie('accessToken');
     sendSuccess(res, null, 'Logged out successfully');
   });
@@ -142,8 +142,8 @@ class AuthController {
   /**
    * Get current user
    */
-  getCurrentUser = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const userId = req.user!.id;
+  getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user!.id;
 
     const result = await query(
       `SELECT id, email, full_name, dietary_preferences, allergies, 
@@ -173,8 +173,8 @@ class AuthController {
   /**
    * Update user profile
    */
-  updateProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const userId = req.user!.id;
+  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user!.id;
     const updates = updateProfileSchema.parse(req.body);
 
     const result = await query(

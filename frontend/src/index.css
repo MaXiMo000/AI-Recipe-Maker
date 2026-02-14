@@ -1,11 +1,96 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@100..900&display=swap');
 
+/* ─── Design tokens (single source of truth) ───────────────────────────────── */
+:root {
+  /* Primary brand */
+  --color-primary-50: #fff7ed;
+  --color-primary-100: #ffedd5;
+  --color-primary-200: #fed7aa;
+  --color-primary-300: #fdba74;
+  --color-primary-400: #fb923c;
+  --color-primary-500: #f97316;
+  --color-primary-600: #ea580c;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
+
+  /* Semantic shortcuts (use these in components when possible) */
+  --color-primary: var(--color-primary-500);
+  --color-primary-hover: var(--color-primary-600);
+  --color-primary-muted: var(--color-primary-100);
+
+  /* Surfaces & background */
+  --color-bg: #fafaf9;
+  --color-bg-elevated: #ffffff;
+  --color-surface: #f5f5f4;
+  --color-surface-hover: #e7e5e4;
+
+  /* Text */
+  --color-text: #1c1917;
+  --color-text-muted: #78716c;
+  --color-text-subtle: #a8a29e;
+
+  /* Borders */
+  --color-border: #e7e5e4;
+  --color-border-strong: #d6d3d1;
+
+  /* Feedback */
+  --color-success: #16a34a;
+  --color-success-muted: #dcfce7;
+  --color-error: #dc2626;
+  --color-error-muted: #fee2e2;
+  --color-warning: #ca8a04;
+  --color-warning-muted: #fef9c3;
+
+  /* Loader (centralized) */
+  --loader-size: 2rem;
+  --loader-color: var(--color-primary);
+  --loader-track: var(--color-border);
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
-    @apply bg-stone-50 text-stone-900 font-sans antialiased;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Reusable card for sections and list items */
+  .card-section {
+    @apply rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 sm:p-5 shadow-sm;
+  }
+  .card-interactive {
+    @apply rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-[var(--color-border-strong)];
+  }
+  /* Form inputs – consistent focus ring (no opacity in @apply: Tailwind can fail with theme+opacity) */
+  .input-base {
+    @apply block w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-[40px] text-content shadow-sm placeholder:text-content-subtle focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+  .btn-primary {
+    @apply rounded-lg bg-[var(--color-primary-500)] px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-[40px] font-medium text-white shadow-sm transition hover:bg-[var(--color-primary-600)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-[40px] font-medium text-content shadow-sm transition hover:bg-[var(--color-surface)] focus:outline-none focus:ring-2 focus:ring-divider-strong;
+  }
+  .btn-danger {
+    @apply rounded-lg border border-error px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-[40px] font-medium text-error transition hover:bg-error-muted focus:outline-none focus:ring-2 focus:ring-error disabled:opacity-50;
+  }
+  .page-title {
+    @apply font-display text-2xl sm:text-3xl font-semibold text-content tracking-tight;
+  }
+  .page-subtitle {
+    @apply mt-1 text-content-muted text-sm sm:text-base;
   }
 }

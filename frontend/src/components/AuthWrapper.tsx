@@ -2,8 +2,12 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Loader } from '@/components/ui/Loader';
 
-/** Protects routes that require login; uses central Loader and redirects to /login when not authenticated. */
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+/**
+ * Wraps protected content: shows central Loader while auth is resolving,
+ * redirects to login if not authenticated, otherwise renders children.
+ * Use for any route that requires a logged-in user.
+ */
+export function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 

@@ -1,3 +1,14 @@
+// Log any crash to stdout/stderr so Docker shows it
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err?.message ?? err);
+  console.error(err?.stack ?? err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, _promise) => {
+  console.error('[FATAL] unhandledRejection:', reason);
+  process.exit(1);
+});
+
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -67,6 +78,13 @@ class App {
     // Global API rate limit (before mounting routes)
     this.app.use('/api', globalApiLimiter);
 
+    // API responses: revalidate every time so lists update after create/delete (no stale 304)
+    // React Query still caches in memory and invalidates on mutation
+    this.app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
+      res.set('Cache-Control', 'private, max-age=0, must-revalidate');
+      next();
+    });
+
     // API routes
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/recipes', recipeRoutes);
@@ -97,14 +115,21 @@ class App {
         logger.info(`🔗 Frontend URL: ${config.frontendUrl}`);
       });
     } catch (error) {
-      logger.error('Failed to start server:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error('[FATAL] Failed to start server:', err.message);
+      console.error(err.stack ?? err);
+      try { logger.error('Failed to start server:', error); } catch (_) {}
       process.exit(1);
     }
   }
 }
 
-// Start application
+// Start application (wrap so import-time errors are visible if they occur later)
 const application = new App();
-application.start();
+application.start().catch((err) => {
+  console.error('[FATAL] start() rejected:', err?.message ?? err);
+  console.error(err?.stack ?? err);
+  process.exit(1);
+});
 
 export default application.app;

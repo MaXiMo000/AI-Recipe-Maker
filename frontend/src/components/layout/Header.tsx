@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useResponsive, getModifierKeyName } from '@/hooks';
 
 const navLinks = [
   { to: '/recipes', label: 'Recipes' },
@@ -13,6 +14,8 @@ export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isDesktop } = useResponsive();
+  const modKey = getModifierKeyName();
 
   const handleLogout = async () => {
     setMobileOpen(false);
@@ -20,12 +23,12 @@ export function Header() {
     navigate('/');
   };
 
-  const linkClass = "text-sm font-medium text-stone-600 hover:text-primary-600";
-  const mobileLinkClass = "block w-full py-3 text-left text-base font-medium text-stone-700 hover:text-primary-600 hover:bg-stone-50 rounded-lg px-4 -mx-4";
+  const linkClass = "text-sm font-medium text-content-muted hover:text-primary-600 transition-colors rounded-md px-2 py-1.5 -mx-2 -my-1.5";
+  const mobileLinkClass = "block w-full py-3 text-left text-base font-medium text-content hover:text-primary-600 hover:bg-surface-100 rounded-lg px-4 -mx-4 transition-colors";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]/98 backdrop-blur-sm shadow-soft">
+      <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="font-display text-lg sm:text-xl font-semibold text-primary-600 shrink-0">
           AI Recipe Maker
         </Link>
@@ -35,6 +38,9 @@ export function Header() {
           {navLinks.map(({ to, label }) => (
             <Link key={to} to={to} className={linkClass}>
               {label}
+              {to === '/search' && isDesktop && (
+                <span className="ml-1 text-content-subtle text-xs">({modKey}+K)</span>
+              )}
             </Link>
           ))}
           {user ? (
@@ -45,7 +51,7 @@ export function Header() {
               <Link to="/profile" className={linkClass} title={user.fullName || user.email}>
                 <span className="max-w-[120px] truncate inline-block">{user.fullName || user.email}</span>
               </Link>
-              <button type="button" onClick={handleLogout} className="text-sm font-medium text-stone-500 hover:text-stone-700">
+              <button type="button" onClick={handleLogout} className="text-sm font-medium text-content-subtle hover:text-content">
                 Log out
               </button>
             </>
@@ -63,7 +69,7 @@ export function Header() {
         <button
           type="button"
           onClick={() => setMobileOpen((o) => !o)}
-          className="md:hidden flex flex-col justify-center gap-1.5 w-10 h-10 rounded-lg text-stone-600 hover:bg-stone-100"
+          className="md:hidden flex flex-col justify-center gap-1.5 w-10 h-10 rounded-lg text-content-muted hover:bg-surface-100"
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
         >
@@ -75,7 +81,7 @@ export function Header() {
 
       {/* Mobile nav drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-stone-200 bg-white">
+        <div className="md:hidden border-t border-divider bg-card">
           <nav className="mx-auto max-w-6xl px-4 py-4 space-y-1">
             {navLinks.map(({ to, label }) => (
               <Link key={to} to={to} className={mobileLinkClass} onClick={() => setMobileOpen(false)}>

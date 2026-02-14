@@ -1,11 +1,27 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { Loader } from '@/components/ui/Loader';
+import { usePersistedState, useKeyboardShortcuts, KeyboardShortcuts } from '@/hooks';
+
+const SEARCH_INPUT_KEY = 'recipe-search-query';
 
 export function SearchPage() {
-  const [q, setQ] = useState('');
-  const [submitted, setSubmitted] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [q, setQ] = usePersistedState(SEARCH_INPUT_KEY, '');
+  const [submitted, setSubmitted] = usePersistedState(`${SEARCH_INPUT_KEY}-submitted`, '');
+
+  useKeyboardShortcuts({
+    [KeyboardShortcuts.CTRL_K]: (e) => {
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    },
+    [KeyboardShortcuts.CTRL_F]: (e) => {
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    },
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ['search-recipes', submitted],
@@ -23,46 +39,49 @@ export function SearchPage() {
 
   return (
     <div className="w-full">
-      <h1 className="font-display text-2xl sm:text-3xl font-semibold text-stone-900">Search recipes</h1>
-      <p className="mt-1 text-stone-600 text-sm sm:text-base">Find recipes by keyword or filters.</p>
+      <h1 className="page-title">Search recipes</h1>
+      <p className="page-subtitle">Find recipes by keyword.</p>
 
       <form
-        className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-2"
+        className="mt-6 flex flex-col sm:flex-row gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           setSubmitted(q.trim());
         }}
       >
         <input
+          ref={searchInputRef}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search..."
-          className="block w-full rounded-md border border-stone-300 px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          placeholder="e.g. chicken, pasta, quick dinner..."
+          className="input-base flex-1"
         />
-        <button
-          type="submit"
-          className="rounded-md bg-primary-500 px-4 py-2.5 sm:py-2 font-medium text-white hover:bg-primary-600 min-h-[44px] sm:min-h-0 shrink-0"
-        >
+        <button type="submit" className="btn-primary shrink-0 sm:w-auto w-full">
           Search
         </button>
       </form>
 
       {isLoading ? (
-        <div className="mt-6 h-32 animate-pulse rounded-lg bg-stone-200" />
+        <Loader variant="inline" label="Searching…" className="mt-8" />
       ) : (
-        <div className="mt-6 grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {recipes.length === 0 && submitted ? (
-            <p className="col-span-full text-stone-500">No recipes found. Try a different search.</p>
+            <div className="col-span-full card-section text-center py-12">
+              <p className="text-content-muted">No recipes found.</p>
+              <p className="mt-1 text-sm text-content-subtle">Try a different search term.</p>
+            </div>
           ) : (
             recipes.map((r: any) => (
               <Link
                 key={r.id}
                 to={`/recipes/${r.id}`}
-                className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm hover:shadow-md"
+                className="card-interactive group block"
               >
-                <h2 className="font-medium text-stone-900">{r.title}</h2>
-                <p className="mt-1 text-sm text-stone-500">
+                <h2 className="font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2">
+                  {r.title}
+                </h2>
+                <p className="mt-1.5 text-sm text-content-subtle">
                   {[r.cuisineType, r.mealType].filter(Boolean).join(' · ') || '—'}
                 </p>
               </Link>
@@ -71,7 +90,7 @@ export function SearchPage() {
         </div>
       )}
       {pagination && pagination.totalPages > 1 && (
-        <p className="mt-4 text-sm text-stone-500">
+        <p className="mt-4 text-sm text-content-subtle">
           Page {pagination.page} of {pagination.totalPages} ({pagination.total} results)
         </p>
       )}

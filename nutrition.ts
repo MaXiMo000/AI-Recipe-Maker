@@ -1,14 +1,15 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { authenticateToken } from './auth';
 import { standardLimiter } from './rateLimiter';
 import { nutritionController } from './nutritionController';
 
+const auth = authenticateToken as RequestHandler;
 const nutritionRouter = Router();
 const searchRouter = Router();
 
-nutritionRouter.post('/analyze', authenticateToken, standardLimiter, nutritionController.analyze);
-nutritionRouter.get('/daily-summary', authenticateToken, nutritionController.dailySummary);
-nutritionRouter.post('/calculate', authenticateToken, nutritionController.calculate);
+nutritionRouter.post('/analyze', auth, standardLimiter, nutritionController.analyze);
+nutritionRouter.get('/daily-summary', auth, nutritionController.dailySummary);
+nutritionRouter.post('/calculate', auth, nutritionController.calculate);
 
 // Search routes
 searchRouter.get('/recipes', standardLimiter, (_req, res) => {

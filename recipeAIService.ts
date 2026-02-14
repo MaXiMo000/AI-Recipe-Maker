@@ -161,11 +161,33 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
   }
 
   /**
+   * Strip markdown code fences and fix common invalid JSON from AI (e.g. fraction literals 1/4).
+   */
+  private normalizeJsonText(text: string): string {
+    let out = text
+      .replace(/^\s*```(?:json)?\s*\n?/i, '')
+      .replace(/\n?```\s*$/g, '')
+      .trim();
+    // Fix invalid JSON: AI often outputs "amount": 1/4 (invalid); replace with decimals
+    const fractionMap: [RegExp, string][] = [
+      [/"amount":\s*1\/4\b/g, '"amount": 0.25'],
+      [/"amount":\s*1\/2\b/g, '"amount": 0.5'],
+      [/"amount":\s*3\/4\b/g, '"amount": 0.75'],
+      [/"amount":\s*1\/3\b/g, '"amount": 0.333'],
+      [/"amount":\s*2\/3\b/g, '"amount": 0.667'],
+    ];
+    for (const [re, replacement] of fractionMap) {
+      out = out.replace(re, replacement);
+    }
+    return out;
+  }
+
+  /**
    * Parse AI recipe response into structured format
    */
   private parseRecipeResponse(text: string): Recipe {
     try {
-      const cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanText = this.normalizeJsonText(text);
       const parsed = JSON.parse(cleanText);
       if (!parsed.title || !parsed.ingredients || !parsed.instructions) {
         throw new Error('Missing required recipe fields');
@@ -176,25 +198,26 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
         cuisineType: parsed.cuisineType || parsed.cuisine_type,
         mealType: parsed.mealType || parsed.meal_type,
         difficulty: parsed.difficulty || 'medium',
-        prepTime: parsed.prepTime || parsed.prep_time || 0,
-        cookTime: parsed.cookTime || parsed.cook_time || 0,
-        servings: parsed.servings || 4,
+        prepTime: parsed.prepTime ?? parsed.prep_time ?? 0,
+        cookTime: parsed.cookTime ?? parsed.cook_time ?? 0,
+        servings: parsed.servings ?? 4,
         ingredients: parsed.ingredients,
         instructions: parsed.instructions,
-        nutritionalInfo: parsed.nutritionalInfo || parsed.nutritional_info,
+        nutritionalInfo: parsed.nutritionalInfo ?? parsed.nutritional_info,
         tags: parsed.tags || [],
         source: 'ai_generated',
         isPublic: false,
       };
     } catch (error) {
-      logger.error('Failed to parse recipe response', { text, error });
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Failed to parse recipe response', { text: text.slice(0, 200), error: message });
       throw new Error('Invalid recipe format from AI');
     }
   }
 
   private parseMealPlanResponse(text: string): any {
     try {
-      const cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanText = this.normalizeJsonText(text);
       return JSON.parse(cleanText);
     } catch (error) {
       logger.error('Failed to parse meal plan response', error);

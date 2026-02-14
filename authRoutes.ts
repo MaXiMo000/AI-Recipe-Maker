@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
 import { authController } from './authController';
 import { authenticateToken } from './auth';
 import { authLimiter, standardLimiter } from './rateLimiter';
@@ -7,11 +7,17 @@ import { isGoogleOAuthConfigured, getPassport } from './passportGoogle';
 
 const router = Router();
 
-router.post('/register', authLimiter, authController.register);
-router.post('/login', authLimiter, authController.login);
-router.post('/logout', authenticateToken, authController.logout);
-router.get('/me', authenticateToken, authController.getCurrentUser);
-router.put('/profile', authenticateToken, standardLimiter, authController.updateProfile);
+// Wrap so router receives RequestHandler; avoids Express Request.user vs AuthRequest type conflict
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function wrap(fn: any): RequestHandler {
+  return fn;
+}
+
+router.post('/register', authLimiter, wrap(authController.register));
+router.post('/login', authLimiter, wrap(authController.login));
+router.post('/logout', authenticateToken as RequestHandler, wrap(authController.logout));
+router.get('/me', authenticateToken as RequestHandler, wrap(authController.getCurrentUser));
+router.put('/profile', authenticateToken as RequestHandler, standardLimiter, wrap(authController.updateProfile));
 
 // Google OAuth: redirect to Google (only when configured and passport available)
 router.get('/google', authLimiter, (req: Request, res: Response) => {

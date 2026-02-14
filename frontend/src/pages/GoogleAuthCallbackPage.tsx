@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { Loader } from '@/components/ui/Loader';
 
 export function GoogleAuthCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -37,11 +38,7 @@ export function GoogleAuthCallbackPage() {
   }, [searchParams, navigate, refreshUser]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-stone-500">Signing you in…</p>
-      </div>
-    );
+    return <Loader variant="page" label="Signing you in…" />;
   }
 
   return null;

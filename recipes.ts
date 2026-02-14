@@ -1,28 +1,29 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { recipeController } from './recipeController';
 import { authenticateToken, optionalAuth } from './auth';
 import { aiGenerationLimiter, standardLimiter } from './rateLimiter';
 
+const auth = authenticateToken as RequestHandler;
 const router = Router();
 
 // Generate recipes (requires auth + rate limiting)
 router.post(
   '/generate',
-  authenticateToken,
+  auth,
   aiGenerationLimiter,
   recipeController.generateRecipe
 );
 
 router.post(
   '/modify/:id',
-  authenticateToken,
+  auth,
   aiGenerationLimiter,
   recipeController.modifyRecipe
 );
 
 router.post(
   '/suggestions',
-  authenticateToken,
+  auth,
   standardLimiter,
   recipeController.getSuggestions
 );
@@ -30,52 +31,52 @@ router.post(
 // CRUD operations
 router.get(
   '/',
-  optionalAuth,
+  optionalAuth as RequestHandler,
   standardLimiter,
   recipeController.getRecipes
 );
 
 router.get(
   '/:id',
-  optionalAuth,
+  optionalAuth as RequestHandler,
   recipeController.getRecipeById
 );
 
 router.post(
   '/',
-  authenticateToken,
+  auth,
   standardLimiter,
   recipeController.createRecipe
 );
 
 router.put(
   '/:id',
-  authenticateToken,
+  auth,
   recipeController.updateRecipe
 );
 
 router.delete(
   '/:id',
-  authenticateToken,
+  auth,
   recipeController.deleteRecipe
 );
 
 // Favorites
 router.post(
   '/:id/favorite',
-  authenticateToken,
+  auth,
   recipeController.addToFavorites
 );
 
 router.delete(
   '/:id/favorite',
-  authenticateToken,
+  auth,
   recipeController.removeFromFavorites
 );
 
 router.get(
   '/favorites/list',
-  authenticateToken,
+  auth,
   recipeController.getFavorites
 );
 

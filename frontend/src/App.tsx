@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { Layout } from '@/layout/Layout';
+import { NotificationBar } from '@/components/NotificationBar';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -28,9 +30,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
+        <NotificationProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -97,7 +100,9 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        <NotificationBar />
         <Toaster position="top-right" />
+      </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

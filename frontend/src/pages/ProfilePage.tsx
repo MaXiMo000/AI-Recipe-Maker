@@ -3,8 +3,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
+import { useNotificationContext } from '@/context/NotificationContext';
 import { getMe, updateProfile } from '@/services/auth';
 import { toast } from 'sonner';
+import { Loader } from '@/components/ui/Loader';
 
 const schema = z.object({
   fullName: z.string().optional(),
@@ -18,6 +20,7 @@ type FormData = z.infer<typeof schema>;
 
 export function ProfilePage() {
   const { user: authUser, refreshUser } = useAuth();
+  const { showSuccess } = useNotificationContext();
   const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useQuery({
@@ -54,40 +57,28 @@ export function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       refreshUser();
       toast.success('Profile updated');
+      showSuccess('Profile saved');
     },
     onError: () => toast.error('Failed to update profile'),
   });
 
   if (isLoading || !user) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
-      </div>
-    );
+    return <Loader variant="page" label="Loading profile…" />;
   }
 
   return (
     <div className="mx-auto w-full max-w-lg px-2">
-      <h1 className="font-display text-2xl sm:text-3xl font-semibold text-stone-900">Profile</h1>
-      <p className="mt-1 text-stone-600 text-sm sm:text-base">{user.email}</p>
+      <h1 className="page-title">Profile</h1>
+      <p className="page-subtitle">{user.email}</p>
 
-      <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="mt-6 sm:mt-8 card-section space-y-4">
         <div>
-          <label htmlFor="fullName" className="block text-sm font-medium text-stone-700">Name</label>
-          <input
-            id="fullName"
-            type="text"
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            {...register('fullName')}
-          />
+          <label htmlFor="fullName" className="block text-sm font-medium text-content-muted mb-1">Name</label>
+          <input id="fullName" type="text" className="input-base" {...register('fullName')} />
         </div>
         <div>
-          <label htmlFor="skillLevel" className="block text-sm font-medium text-stone-700">Skill level</label>
-          <select
-            id="skillLevel"
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            {...register('skillLevel')}
-          >
+          <label htmlFor="skillLevel" className="block text-sm font-medium text-content-muted mb-1">Skill level</label>
+          <select id="skillLevel" className="input-base" {...register('skillLevel')}>
             <option value="">—</option>
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
@@ -95,39 +86,18 @@ export function ProfilePage() {
           </select>
         </div>
         <div>
-          <label htmlFor="calorieTarget" className="block text-sm font-medium text-stone-700">Calorie target (daily)</label>
-          <input
-            id="calorieTarget"
-            type="number"
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            {...register('calorieTarget', { valueAsNumber: true })}
-          />
+          <label htmlFor="calorieTarget" className="block text-sm font-medium text-content-muted mb-1">Calorie target (daily)</label>
+          <input id="calorieTarget" type="number" className="input-base" {...register('calorieTarget', { valueAsNumber: true })} />
         </div>
         <div>
-          <label htmlFor="dietaryPreferences" className="block text-sm font-medium text-stone-700">Dietary (comma-separated)</label>
-          <input
-            id="dietaryPreferences"
-            type="text"
-            placeholder="e.g. vegetarian, gluten-free"
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            {...register('dietaryPreferences')}
-          />
+          <label htmlFor="dietaryPreferences" className="block text-sm font-medium text-content-muted mb-1">Dietary (comma-separated)</label>
+          <input id="dietaryPreferences" type="text" placeholder="e.g. vegetarian, gluten-free" className="input-base" {...register('dietaryPreferences')} />
         </div>
         <div>
-          <label htmlFor="allergies" className="block text-sm font-medium text-stone-700">Allergies (comma-separated)</label>
-          <input
-            id="allergies"
-            type="text"
-            placeholder="e.g. nuts, shellfish"
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-            {...register('allergies')}
-          />
+          <label htmlFor="allergies" className="block text-sm font-medium text-content-muted mb-1">Allergies (comma-separated)</label>
+          <input id="allergies" type="text" placeholder="e.g. nuts, shellfish" className="input-base" {...register('allergies')} />
         </div>
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="w-full sm:w-auto rounded-md bg-primary-500 px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 font-medium text-white hover:bg-primary-600 disabled:opacity-50"
-        >
+        <button type="submit" disabled={mutation.isPending} className="btn-primary w-full sm:w-auto">
           {mutation.isPending ? 'Saving…' : 'Save'}
         </button>
       </form>
