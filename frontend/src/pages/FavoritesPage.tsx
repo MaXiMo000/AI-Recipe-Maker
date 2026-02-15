@@ -1,15 +1,35 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getFavorites } from '@/services/recipes';
 import { RecipeCard } from '@/components/RecipeCard';
 import { RecipeCardSkeleton } from '@/components/RecipeCardSkeleton';
 
+const PER_PAGE = 20;
+
 export function FavoritesPage() {
-  const { data: recipes, isLoading, error } = useQuery({
-    queryKey: ['favorites'],
-    queryFn: getFavorites,
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
+
+  const setPage = (p: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (p <= 1) next.delete('page');
+      else next.set('page', String(p));
+      return next;
+    });
+  };
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['favorites', page],
+    queryFn: () => getFavorites({ page, limit: PER_PAGE }),
     staleTime: 30 * 1000,
   });
+
+  const recipes = data?.data ?? [];
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
+  const total = pagination?.total ?? 0;
+  const currentPage = pagination?.page ?? 1;
 
   if (isLoading) {
     return (
@@ -42,8 +62,6 @@ export function FavoritesPage() {
     );
   }
 
-  const list = recipes ?? [];
-
   return (
     <div className="w-full">
       <div className="mb-6 sm:mb-8">
@@ -60,7 +78,7 @@ export function FavoritesPage() {
         </p>
       </div>
 
-      {list.length === 0 ? (
+      {recipes.length === 0 ? (
         <div className="max-w-lg mx-auto text-center">
           <div className="rounded-3xl border-2 border-dashed border-rose-200 bg-gradient-to-br from-rose-50/80 to-orange-50/50 p-10 sm:p-14">
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-rose-400 mb-6">
@@ -84,7 +102,7 @@ export function FavoritesPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {list.map((r) => (
+          {recipes.map((r) => (
             <RecipeCard
               key={r.id}
               recipe={{ ...r, isFavorite: true }}
@@ -96,10 +114,35 @@ export function FavoritesPage() {
         </div>
       )}
 
-      {list.length > 0 && (
-        <p className="mt-6 text-sm text-content-subtle">
-          {list.length} {list.length === 1 ? 'recipe' : 'recipes'} saved
-        </p>
+      {total > 0 && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-content-subtle">
+            {total} {total === 1 ? 'recipe' : 'recipes'} saved
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-content-muted">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

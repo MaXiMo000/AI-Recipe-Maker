@@ -507,22 +507,39 @@ class RecipeController {
   });
 
   /**
-   * Get user's favorite recipes
+   * Get user's favorite recipes (paginated)
    */
   getFavorites = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const countResult = await query(
+      'SELECT COUNT(*) FROM user_favorites WHERE user_id = $1',
+      [userId]
+    );
+    const total = parseInt(String(countResult.rows[0].count), 10);
 
     const result = await query(
       `SELECT r.* FROM recipes r
        JOIN user_favorites f ON r.id = f.recipe_id
        WHERE f.user_id = $1
-       ORDER BY f.created_at DESC`,
-      [userId]
+       ORDER BY f.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
     );
 
-    const recipes = result.rows.map((row: Record<string, unknown>) => this.formatRecipe(row));
+    const recipes = result.rows.map((row: Record<string, unknown>) =>
+      this.formatRecipe(row, true)
+    );
 
-    sendSuccess(res, recipes);
+    sendPaginated(res, recipes, {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   });
 
   /**

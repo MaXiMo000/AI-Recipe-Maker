@@ -14,9 +14,15 @@ export interface RecipeListItem {
   tags?: string[];
 }
 
-export async function getFavorites(): Promise<RecipeListItem[]> {
-  const { data } = await api.get<{ success: boolean; data: RecipeListItem[] }>('/recipes/favorites/list');
-  return data.data ?? [];
+export interface FavoritesResponse {
+  success: boolean;
+  data: RecipeListItem[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export async function getFavorites(params?: { page?: number; limit?: number }): Promise<FavoritesResponse> {
+  const { data } = await api.get<FavoritesResponse>('/recipes/favorites/list', { params });
+  return data;
 }
 
 export async function addFavorite(recipeId: string): Promise<void> {
