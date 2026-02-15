@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -165,7 +164,7 @@ export function RecipesPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage <= 1}
                 className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -173,7 +172,7 @@ export function RecipesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage >= totalPages}
                 className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
