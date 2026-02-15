@@ -43,6 +43,8 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+  // Per-user daily AI usage cap (recipe + meal-plan generation)
+  AI_DAILY_LIMIT_PER_USER: z.string().transform(Number).default('15'),
 });
 
 const env = envSchema.parse(process.env);
@@ -103,4 +105,6 @@ export const config = {
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     maxRequests: env.RATE_LIMIT_MAX_REQUESTS,
   },
+  // Per-user daily AI cap
+  aiDailyLimitPerUser: env.AI_DAILY_LIMIT_PER_USER,
 } as const;

@@ -10,7 +10,13 @@
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "migrate": "node dist/scripts/migrate.js",
-    "seed": "node dist/scripts/seed.js"
+    "seed": "node dist/scripts/seed.js",
+    "seed:curated": "ts-node scripts/seedCuratedRecipes.ts",
+    "seed:themealdb": "ts-node scripts/seedTheMealDB.ts",
+    "seed:import": "ts-node scripts/importRecipesFromJson.ts",
+    "seed:curated:prod": "node dist/scripts/seedCuratedRecipes.js",
+    "seed:themealdb:prod": "node dist/scripts/seedTheMealDB.js",
+    "seed:import:prod": "node dist/scripts/importRecipesFromJson.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",

@@ -55,6 +55,8 @@ export interface NutritionalInfo {
 export interface Recipe {
   id?: string;
   userId?: string;
+  /** True for app-curated recipes (visible to all, not editable/deletable by users) */
+  isCurated?: boolean;
   title: string;
   description: string;
   cuisineType?: string;
@@ -68,7 +70,7 @@ export interface Recipe {
   nutritionalInfo?: NutritionalInfo;
   tags: string[];
   imageUrl?: string;
-  source: 'ai_generated' | 'user_created' | 'imported';
+  source: 'ai_generated' | 'user_created' | 'imported' | 'curated';
   isPublic: boolean;
   createdAt?: Date;
   updatedAt?: Date;

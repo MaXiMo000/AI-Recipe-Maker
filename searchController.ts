@@ -20,6 +20,7 @@ function formatRecipeRow(row: Record<string, unknown>) {
   return {
     id: row.id,
     userId: row.user_id,
+    isCurated: row.user_id == null,
     title: row.title,
     description: row.description,
     cuisineType: row.cuisine_type,
@@ -71,8 +72,8 @@ class SearchController {
       return sendPaginated(res, cached.data, { page, limit, total: cached.total, totalPages: Math.ceil(cached.total / limit) });
     }
     const conditions: string[] = userId
-      ? ['(r.is_public = true OR r.user_id = $1)']
-      : ['r.is_public = true'];
+      ? ['(r.is_public = true OR r.user_id = $1 OR r.user_id IS NULL)']
+      : ['(r.is_public = true OR r.user_id IS NULL)'];
     const params: (string | number)[] = userId ? [userId] : [];
     let paramIndex = params.length + 1;
 

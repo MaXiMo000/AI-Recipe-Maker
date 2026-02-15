@@ -244,17 +244,23 @@ class RecipeController {
       whereConditions.push(`user_id = $${paramIndex++}`);
       params.push(filterUserId);
     } else if (req.user) {
-      // Logged in, no filter: show this user's recipes (my recipes)
-      whereConditions.push(`user_id = $${paramIndex++}`);
+      // Logged in, no filter: show user's recipes + curated (user_id IS NULL)
+      whereConditions.push(`(user_id = $${paramIndex++} OR user_id IS NULL)`);
       params.push(req.user.id);
     } else {
-      // Not logged in: only public recipes
-      whereConditions.push('is_public = true');
+      // Not logged in: public recipes + curated
+      whereConditions.push('(is_public = true OR user_id IS NULL)');
     }
 
     const whereClause = whereConditions.length > 0
       ? 'WHERE ' + whereConditions.join(' AND ')
       : '';
+
+    // Order: user's recipes first, then curated, by created_at
+    const orderClause = req.user && !filterUserId
+      ? 'ORDER BY (user_id IS NOT NULL AND user_id = $' + (params.length + 1) + ') DESC, created_at DESC'
+      : 'ORDER BY created_at DESC';
+    const orderParams = req.user && !filterUserId ? [...params, req.user.id] : params;
 
     // Get total count
     const countResult = await query(
@@ -263,12 +269,15 @@ class RecipeController {
     );
     const total = parseInt(String(countResult.rows[0].count), 10);
 
-    // Get recipes
+    // Get recipes (orderParams may add one param for ORDER BY when showing my + curated)
+    const selectParams = orderParams;
+    const limitIndex = selectParams.length + 1;
+    const offsetIndex = selectParams.length + 2;
     const result = await query(
       `SELECT * FROM recipes ${whereClause}
-       ORDER BY created_at DESC
-       LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
-      [...params, limit, offset]
+       ${orderClause}
+       LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+      [...selectParams, limit, offset]
     );
 
     const recipes = result.rows.map((row: Record<string, unknown>) => this.formatRecipe(row));
@@ -362,7 +371,9 @@ class RecipeController {
     if (checkResult.rows.length === 0) {
       throw new AppError('Recipe not found', 404);
     }
-
+    if (checkResult.rows[0].user_id == null) {
+      throw new AppError('Curated recipes cannot be modified', 403);
+    }
     if (checkResult.rows[0].user_id !== userId) {
       throw new AppError('Not authorized to update this recipe', 403);
     }
@@ -407,7 +418,9 @@ class RecipeController {
     if (checkResult.rows.length === 0) {
       throw new AppError('Recipe not found', 404);
     }
-
+    if (checkResult.rows[0].user_id == null) {
+      throw new AppError('Curated recipes cannot be deleted', 403);
+    }
     if (checkResult.rows[0].user_id !== userId) {
       throw new AppError('Not authorized to delete this recipe', 403);
     }
@@ -490,6 +503,7 @@ class RecipeController {
     return {
       id: row.id,
       userId: row.user_id,
+      isCurated: row.user_id == null,
       title: row.title,
       description: row.description,
       cuisineType: row.cuisine_type,
@@ -503,7 +517,7 @@ class RecipeController {
       nutritionalInfo: row.nutritional_info,
       tags: row.tags,
       imageUrl: row.image_url,
-      source: row.source,
+      source: row.source ?? (row.user_id == null ? 'curated' : 'user_created'),
       isPublic: row.is_public,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

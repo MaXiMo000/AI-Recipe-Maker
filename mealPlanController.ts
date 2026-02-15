@@ -44,12 +44,11 @@ function buildShoppingListFromMeals(planDays: any[]): Array<{ ingredient: string
       }
     }
   }
-  return Array.from(map.entries()).map(([ingredient, { amount, unit }]) => ({
-    ingredient,
-    amount,
-    unit,
-    checked: false,
-  }));
+  return Array.from(map.entries()).map(([key, { amount, unit }]) => {
+    // Key is "name|unit"; strip trailing pipe so we never show "oats|" when unit is empty
+    const ingredient = key.includes('|') ? key.slice(0, key.lastIndexOf('|')).trim() : key.trim();
+    return { ingredient: ingredient || key, amount, unit, checked: false };
+  });
 }
 
 function addMealIngredients(meal: any, map: Map<string, { amount: number; unit: string }>) {

@@ -142,6 +142,15 @@ export const initializeSchema = async (): Promise<void> => {
       PRIMARY KEY (user_id, recipe_id)
     );
 
+    -- Per-user daily AI usage (recipe/meal-plan generation)
+    CREATE TABLE IF NOT EXISTS ai_usage_daily (
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      usage_date DATE NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (user_id, usage_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_daily_user_date ON ai_usage_daily(user_id, usage_date);
+
     -- Indexes
     CREATE INDEX IF NOT EXISTS idx_recipes_user_id ON recipes(user_id);
     CREATE INDEX IF NOT EXISTS idx_recipes_cuisine ON recipes(cuisine_type);
@@ -166,6 +175,11 @@ export const initializeSchema = async (): Promise<void> => {
       ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
     `;
     await query(migration);
+
+    // Allow curated recipes: user_id NULL = system/curated (read-only for all users)
+    await query(`ALTER TABLE recipes ALTER COLUMN user_id DROP NOT NULL`).catch((err: Error) => {
+      if (!String(err.message).includes('already')) logger.warn('recipes.user_id nullable:', err.message);
+    });
   } catch (error) {
     logger.error('Failed to initialize schema:', error);
     throw error;

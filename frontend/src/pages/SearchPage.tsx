@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -6,11 +6,13 @@ import { Loader } from '@/components/ui/Loader';
 import { usePersistedState, useKeyboardShortcuts, KeyboardShortcuts } from '@/hooks';
 
 const SEARCH_INPUT_KEY = 'recipe-search-query';
+const PER_PAGE = 20;
 
 export function SearchPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = usePersistedState(SEARCH_INPUT_KEY, '');
   const [submitted, setSubmitted] = usePersistedState(`${SEARCH_INPUT_KEY}-submitted`, '');
+  const [page, setPage] = useState(1);
 
   useKeyboardShortcuts({
     [KeyboardShortcuts.CTRL_K]: (e) => {
@@ -24,10 +26,10 @@ export function SearchPage() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['search-recipes', submitted],
+    queryKey: ['search-recipes', submitted, page],
     queryFn: async () => {
       const { data: res } = await api.get<{ success: boolean; data: any[]; pagination: any }>('/search/recipes', {
-        params: { q: submitted || undefined, limit: 20 },
+        params: { q: submitted || undefined, limit: PER_PAGE, page },
       });
       return res;
     },
@@ -36,6 +38,9 @@ export function SearchPage() {
 
   const recipes = data?.data ?? [];
   const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
+  const total = pagination?.total ?? 0;
+  const currentPage = pagination?.page ?? 1;
 
   return (
     <div className="w-full">
@@ -47,6 +52,7 @@ export function SearchPage() {
         onSubmit={(e) => {
           e.preventDefault();
           setSubmitted(q.trim());
+          setPage(1);
         }}
       >
         <input
@@ -98,10 +104,32 @@ export function SearchPage() {
           )}
         </div>
       )}
-      {pagination && pagination.totalPages > 1 && (
-        <p className="mt-4 text-sm text-content-subtle">
-          Page {pagination.page} of {pagination.totalPages} ({pagination.total} results)
-        </p>
+      {pagination && total > 0 && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-content-subtle">
+            Page {currentPage} of {totalPages} ({total} results)
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

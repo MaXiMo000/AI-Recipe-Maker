@@ -63,14 +63,16 @@ export function RecipeDetailPage() {
           <span aria-hidden>←</span>
           Recipes
         </Link>
-        <button
-          type="button"
-          onClick={() => deleteMutation.mutate()}
-          disabled={deleteMutation.isPending}
-          className="btn-danger text-sm py-2 min-h-[40px]"
-        >
-          {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-        </button>
+        {!recipe.isCurated && (
+          <button
+            type="button"
+            onClick={() => deleteMutation.mutate()}
+            disabled={deleteMutation.isPending}
+            className="btn-danger text-sm py-2 min-h-[40px]"
+          >
+            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+          </button>
+        )}
       </div>
 
       {/* Hero title block */}

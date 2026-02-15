@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { Loader } from '@/components/ui/Loader';
+
+const PER_PAGE = 20;
 
 interface Recipe {
   id: string;
@@ -11,14 +14,25 @@ interface Recipe {
   difficulty?: string;
   prepTime?: number;
   cookTime?: number;
+  isCurated?: boolean;
+}
+
+interface RecipesResponse {
+  success: boolean;
+  data: Recipe[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
 export function RecipesPage() {
+  const [page, setPage] = useState(1);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['recipes'],
+    queryKey: ['recipes', page],
     queryFn: async () => {
-      const { data: res } = await api.get<{ success: boolean; data: Recipe[] }>('/recipes');
-      return res.data;
+      const { data: res } = await api.get<RecipesResponse>('/recipes', {
+        params: { page, limit: PER_PAGE },
+      });
+      return res;
     },
     staleTime: 0,
     refetchOnMount: 'always',
@@ -36,13 +50,17 @@ export function RecipesPage() {
     );
   }
 
-  const recipes = data ?? [];
+  const recipes = data?.data ?? [];
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
+  const total = pagination?.total ?? 0;
+  const currentPage = pagination?.page ?? 1;
 
   return (
     <div className="w-full">
       <div className="mb-6 sm:mb-8">
-        <h1 className="page-title">My recipes</h1>
-        <p className="page-subtitle">Recipes you’ve created or saved.</p>
+        <h1 className="page-title">Recipes</h1>
+        <p className="page-subtitle">Your recipes and curated recipes everyone can use.</p>
       </div>
 
       <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
@@ -73,6 +91,7 @@ export function RecipesPage() {
                     {r.title}
                   </h2>
                   <div className="mt-3 flex flex-wrap gap-1.5">
+                    {r.isCurated && <span className="pill pill-primary">Curated</span>}
                     {meta.slice(0, 3).map((m) => (
                       <span key={m} className="pill-muted">{m}</span>
                     ))}
@@ -86,6 +105,34 @@ export function RecipesPage() {
           })
         )}
       </div>
+
+      {total > 0 && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-content-subtle">
+            Page {currentPage} of {totalPages} ({total} recipes)
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

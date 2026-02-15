@@ -33,6 +33,8 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: AI_DAILY_LIMIT_PER_USER
+        value: "15"
 
   # Frontend (Vite static site)
   - type: web

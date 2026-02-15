@@ -20,6 +20,6 @@
     "noFallthroughCasesInSwitch": true,
     "jsx": "react"
   },
-  "include": ["*.ts", "*.tsx", "*.d.ts"],
+  "include": ["*.ts", "*.tsx", "*.d.ts", "scripts/*.ts"],
   "exclude": ["node_modules", "dist", "frontend", "mnt", "**/*.test.ts", "vite.config.ts", "RecipeGenerator.tsx", "hooks"]
 }

@@ -105,6 +105,8 @@ class App {
       // Connect to databases
       await connectDatabase();
       await initializeSchema();
+      const { runCuratedSeed } = await import('./runCuratedSeed');
+      await runCuratedSeed().catch((err) => logger.warn('Curated seed skipped or failed', err));
       await connectRedis();
 
       // Start server

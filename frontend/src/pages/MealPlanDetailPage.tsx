@@ -98,7 +98,7 @@ export function MealPlanDetailPage() {
                   {i + 1}
                 </span>
                 <span className="text-content">
-                  {item.amount} {item.unit} {item.ingredient}
+                  {item.amount} {item.unit} {(item.ingredient ?? '').replace(/\|+$/, '').trim()}
                 </span>
               </li>
             ))

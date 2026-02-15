@@ -2,14 +2,16 @@ import { Router, RequestHandler } from 'express';
 import { recipeController } from './recipeController';
 import { authenticateToken, optionalAuth } from './auth';
 import { aiGenerationLimiter, standardLimiter } from './rateLimiter';
+import { checkAiDailyLimit } from './aiDailyLimit';
 
 const auth = authenticateToken as RequestHandler;
 const router = Router();
 
-// Generate recipes (requires auth + rate limiting)
+// Generate recipes (auth + per-user daily AI limit + per-IP rate limit)
 router.post(
   '/generate',
   auth,
+  (req, res, next) => { void checkAiDailyLimit(req as import('./auth').AuthRequest, res, next).catch(next); },
   aiGenerationLimiter,
   recipeController.generateRecipe
 );
@@ -17,6 +19,7 @@ router.post(
 router.post(
   '/modify/:id',
   auth,
+  (req, res, next) => { void checkAiDailyLimit(req as import('./auth').AuthRequest, res, next).catch(next); },
   aiGenerationLimiter,
   recipeController.modifyRecipe
 );
