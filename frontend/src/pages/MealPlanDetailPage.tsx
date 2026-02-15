@@ -57,6 +57,19 @@ export function MealPlanDetailPage() {
   const days = Array.isArray(plan.meals) ? plan.meals : [];
   const list = Array.isArray(shoppingList) ? shoppingList : [];
 
+  const handleCopyShoppingList = async () => {
+    try {
+      const { data } = await api.get<string>(`/meal-plans/${id}/shopping-list`, {
+        params: { format: 'text' },
+        responseType: 'text',
+      });
+      await navigator.clipboard.writeText(data);
+      toast.success('Shopping list copied to clipboard');
+    } catch {
+      toast.error('Failed to copy list');
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto pb-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -124,7 +137,18 @@ export function MealPlanDetailPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="section-heading">Shopping list</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2 border-b-2 border-primary-100">
+          <h2 className="section-heading mb-0 pb-0 border-0">Shopping list</h2>
+          {list.length > 0 && (
+            <button
+              type="button"
+              onClick={handleCopyShoppingList}
+              className="btn-secondary text-sm py-2 min-h-[40px]"
+            >
+              Copy list
+            </button>
+          )}
+        </div>
         <ul className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] divide-y divide-[var(--color-border)] overflow-hidden">
           {list.length === 0 ? (
             <li className="px-4 py-6 text-center text-content-subtle">No items</li>

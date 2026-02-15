@@ -51,7 +51,13 @@ export function RecipeCard({
             />
           </div>
         ) : (
-          <div className={`h-1.5 w-full ${gradientClass} rounded-t-[var(--radius-card)]`} aria-hidden />
+          <div className={`relative aspect-[16/10] w-full ${gradientClass} rounded-t-[var(--radius-card)] flex items-center justify-center`} aria-hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80" aria-hidden>
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+          </div>
         )}
         <div className={`p-4 sm:p-5 ${showFavoriteButton ? 'pr-12' : ''}`}>
           <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">

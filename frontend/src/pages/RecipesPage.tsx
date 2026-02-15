@@ -1,12 +1,22 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { RecipeCard } from '@/components/RecipeCard';
 import { RecipeCardSkeleton } from '@/components/RecipeCardSkeleton';
+import { Select } from '@/components/ui/Select';
 import { useAuth } from '@/context/AuthContext';
 
 const PER_PAGE = 20;
+
+const SORT_OPTIONS = [
+  { value: 'createdAt_desc', label: 'Newest first', sort: 'createdAt', order: 'desc' },
+  { value: 'createdAt_asc', label: 'Oldest first', sort: 'createdAt', order: 'asc' },
+  { value: 'title_asc', label: 'Title A–Z', sort: 'title', order: 'asc' },
+  { value: 'title_desc', label: 'Title Z–A', sort: 'title', order: 'desc' },
+  { value: 'totalTime_asc', label: 'Shortest time', sort: 'totalTime', order: 'asc' },
+  { value: 'totalTime_desc', label: 'Longest time', sort: 'totalTime', order: 'desc' },
+] as const;
 
 interface Recipe {
   id: string;
@@ -29,13 +39,41 @@ interface RecipesResponse {
 
 export function RecipesPage() {
   const { user } = useAuth();
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
+  const sortParam = searchParams.get('sort') ?? 'createdAt';
+  const orderParam = searchParams.get('order') ?? 'desc';
+  const sortValue = `${sortParam}_${orderParam}`;
+  const isValidSort = SORT_OPTIONS.some((o) => o.value === sortValue);
+  const sort = isValidSort ? sortParam : 'createdAt';
+  const order = isValidSort ? orderParam : 'desc';
+
+  const setPage = (p: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (p <= 1) next.delete('page');
+      else next.set('page', String(p));
+      return next;
+    });
+  };
+
+  const setSortOrder = (value: string) => {
+    const option = SORT_OPTIONS.find((o) => o.value === value);
+    if (!option) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('sort', option.sort);
+      next.set('order', option.order);
+      next.delete('page');
+      return next;
+    });
+  };
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['recipes', page],
+    queryKey: ['recipes', page, sort, order],
     queryFn: async () => {
       const { data: res } = await api.get<RecipesResponse>('/recipes', {
-        params: { page, limit: PER_PAGE },
+        params: { page, limit: PER_PAGE, sort, order },
       });
       return res;
     },
@@ -75,9 +113,23 @@ export function RecipesPage() {
 
   return (
     <div className="w-full">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="page-title">Recipes</h1>
-        <p className="page-subtitle">Your recipes and curated recipes everyone can use.</p>
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="page-title">Recipes</h1>
+          <p className="page-subtitle">Your recipes and curated recipes everyone can use.</p>
+        </div>
+        <div className="flex items-center gap-2 min-w-0 sm:min-w-[200px]">
+          <label htmlFor="recipes-sort" className="text-sm font-medium text-content-muted shrink-0">
+            Sort
+          </label>
+          <Select
+            id="recipes-sort"
+            value={sortValue}
+            onChange={setSortOrder}
+            options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            className="flex-1 min-w-0"
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">

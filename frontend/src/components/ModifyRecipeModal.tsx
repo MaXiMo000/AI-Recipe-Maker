@@ -137,7 +137,7 @@ export function ModifyRecipeModal({
     >
       <div
         ref={wrapRef}
-        className="w-full max-w-lg my-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg p-5 sm:p-6"
+        className="w-full max-w-lg my-8 max-md:max-h-[90vh] max-md:overflow-y-auto max-md:max-w-[calc(100%-2rem)] max-md:my-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg p-5 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="modify-recipe-title" className="font-display text-xl font-semibold text-content">

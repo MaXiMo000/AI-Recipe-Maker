@@ -125,7 +125,7 @@ export function AddToCollectionModal({ open, recipeId, onClose }: AddToCollectio
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="add-to-collection-title" aria-describedby="add-to-collection-desc">
-      <div ref={wrapRef} className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg p-5 sm:p-6">
+      <div ref={wrapRef} className="w-full max-w-md max-md:max-h-[90vh] max-md:overflow-y-auto max-md:max-w-[calc(100%-2rem)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg p-5 sm:p-6">
         <h2 id="add-to-collection-title" className="font-display text-xl font-semibold text-content">Add to collection</h2>
         <p id="add-to-collection-desc" className="mt-1 text-sm text-content-muted">Select collections to add this recipe to.</p>
 

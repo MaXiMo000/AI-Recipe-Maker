@@ -177,12 +177,32 @@ class MealPlanController {
   getShoppingList = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
-    const result = await query('SELECT shopping_list FROM meal_plans WHERE id = $1 AND user_id = $2', [id, userId]);
+    const format = (req.query.format as string) || '';
+    const acceptPlain = (req.get('Accept') || '').toLowerCase().includes('text/plain');
+    const asText = format === 'text' || acceptPlain;
+
+    const result = await query(
+      asText ? 'SELECT name, shopping_list FROM meal_plans WHERE id = $1 AND user_id = $2' : 'SELECT shopping_list FROM meal_plans WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
     if (result.rows.length === 0) {
       throw new AppError('Meal plan not found', 404);
     }
     const row = result.rows[0] as Record<string, unknown>;
-    const shoppingList = row.shopping_list || [];
+    const shoppingList = (row.shopping_list || []) as Array<{ ingredient: string; amount: number; unit: string }>;
+
+    if (asText) {
+      const planName = (row.name as string) || 'Meal plan';
+      const lines: string[] = [`Shopping list – ${planName}`, ''];
+      for (const item of shoppingList) {
+        const amount = item.amount != null ? String(item.amount) : '';
+        const unit = (item.unit || '').trim();
+        const ingredient = (item.ingredient || '').trim();
+        lines.push([amount, unit, ingredient].filter(Boolean).join(' '));
+      }
+      res.type('text/plain').send(lines.join('\n'));
+      return;
+    }
     sendSuccess(res, shoppingList);
   });
 

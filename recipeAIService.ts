@@ -147,6 +147,10 @@ export class RecipeAIService {
           logger.info('Dropped invalid image URL for modified recipe');
         }
       }
+      // If modified recipe has no image, inherit original so we don't end up with null
+      if (!modified.imageUrl && recipe.imageUrl) {
+        modified.imageUrl = recipe.imageUrl;
+      }
       return modified;
     } catch (error) {
       logger.error('Failed to modify recipe:', error);
@@ -246,10 +250,15 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
         throw new Error('Missing required recipe fields');
       }
       const rawImageUrl = parsed.image_url ?? parsed.imageUrl;
-      const imageUrl =
+      const trimmed =
         typeof rawImageUrl === 'string' && rawImageUrl.startsWith('http')
           ? rawImageUrl.trim()
           : undefined;
+      // Avoid persisting the old default placeholder so different recipes don't share the same image
+      const KNOWN_PLACEHOLDER =
+        'https://www.themealdb.com/images/media/meals/0umm891763364625.jpg';
+      const imageUrl =
+        trimmed && trimmed !== KNOWN_PLACEHOLDER ? trimmed : undefined;
 
       return {
         title: parsed.title,

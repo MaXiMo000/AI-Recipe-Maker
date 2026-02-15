@@ -76,7 +76,7 @@ export function FavoriteButton({
         onClick={handleClick}
         disabled={mutation.isPending}
         aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        className={`${baseClass} p-2 shadow-md bg-white/90 hover:bg-white border border-[var(--color-border)] hover:scale-110 active:scale-95 ${className}`}
+        className={`${baseClass} p-2 min-h-[44px] min-w-[44px] shadow-md bg-white/90 hover:bg-white border border-[var(--color-border)] hover:scale-110 active:scale-95 ${className}`}
       >
         <HeartIcon
           filled={isFavorite}
@@ -92,7 +92,7 @@ export function FavoriteButton({
       onClick={handleClick}
       disabled={mutation.isPending}
       aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      className={`${baseClass} gap-2 px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100/80 text-rose-700 font-medium ${className}`}
+      className={`${baseClass} gap-2 px-4 py-2.5 min-h-[44px] rounded-xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100/80 text-rose-700 font-medium ${className}`}
     >
       <HeartIcon
         filled={isFavorite}

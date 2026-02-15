@@ -28,7 +28,7 @@ export function Header() {
   const mobileLinkClass = "block w-full py-3 text-left text-base font-medium text-content hover:text-primary-600 hover:bg-surface-100 rounded-lg px-4 -mx-4 transition-colors";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]/98 backdrop-blur-sm shadow-soft">
+    <header className="no-print sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]/98 backdrop-blur-sm shadow-soft safe-area-t">
       <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="font-display text-lg sm:text-xl font-semibold text-primary-600 shrink-0">
           AI Recipe Maker

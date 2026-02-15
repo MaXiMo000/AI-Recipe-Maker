@@ -226,12 +226,20 @@ class RecipeController {
       difficulty,
       tags: _tags,
       userId: filterUserId,
+      sort: sortParam,
+      order: orderParam,
     } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
     let whereConditions: string[] = [];
     let params: any[] = [];
     let paramIndex = 1;
+
+    // Allowed sort/order (whitelist to avoid SQL injection)
+    const sortAllowed = ['createdAt', 'title', 'totalTime'] as const;
+    const orderAllowed = ['asc', 'desc'] as const;
+    const sort = sortAllowed.includes(String(sortParam) as typeof sortAllowed[number]) ? String(sortParam) : 'createdAt';
+    const order = orderAllowed.includes(String(orderParam) as typeof orderAllowed[number]) ? String(orderParam) : 'desc';
 
     // Build WHERE conditions
     if (cuisineType) {
@@ -262,10 +270,19 @@ class RecipeController {
       ? 'WHERE ' + whereConditions.join(' AND ')
       : '';
 
-    // Order: user's recipes first, then curated, by created_at
+    // Sort column expression (safe: whitelisted)
+    const sortColumn =
+      sort === 'title'
+        ? 'title'
+        : sort === 'totalTime'
+          ? '(COALESCE(prep_time,0) + COALESCE(cook_time,0))'
+          : 'created_at';
+    const orderDir = order.toUpperCase() as 'ASC' | 'DESC';
+
+    // Order: user's recipes first when applicable, then chosen sort
     const orderClause = req.user && !filterUserId
-      ? 'ORDER BY (user_id IS NOT NULL AND user_id = $' + (params.length + 1) + ') DESC, created_at DESC'
-      : 'ORDER BY created_at DESC';
+      ? `ORDER BY (user_id IS NOT NULL AND user_id = $${params.length + 1}) DESC, ${sortColumn} ${orderDir}`
+      : `ORDER BY ${sortColumn} ${orderDir}`;
     const orderParams = req.user && !filterUserId ? [...params, req.user.id] : params;
 
     // Get total count

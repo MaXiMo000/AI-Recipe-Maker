@@ -27,10 +27,11 @@ Please provide a complete recipe with:
 7. Step-by-step cooking instructions
 8. Helpful cooking tips
 9. Estimated nutritional information per serving
-10. image_url: ONE working direct image URL. The URL must return HTTP 200 with Content-Type image/* (e.g. image/jpeg). Use only these proven patterns:
-    - TheMealDB: https://www.themealdb.com/images/media/meals/XXXXXX.jpg (use a real meal id from their API or a known working id like 0umm891763364625 for a generic meal image)
-    - Unsplash direct: https://images.unsplash.com/photo-XXXXXXXX (use a real Unsplash photo id; the URL must end in .jpg or be a known Unsplash image URL format)
-    Do NOT use placeholder domains, broken links, or URLs that redirect to HTML. If unsure, prefer https://www.themealdb.com/images/media/meals/0umm891763364625.jpg or another verified direct image URL.
+
+10. image_url: ONE working direct image URL that VISUALLY MATCHES THIS SPECIFIC DISH. You MUST choose a different image for each recipe—never reuse the same URL for different dishes. Use only these patterns:
+    - TheMealDB: https://www.themealdb.com/images/media/meals/XXXXXX.jpg — replace XXXXXX with a meal id that matches the dish (e.g. chicken dish use a chicken meal id, pasta use a pasta meal id). Vary the id per recipe (e.g. 52772, 52831, 52928, 53049, 52977, 52796, 52855, 52948, 53013, 52818).
+    - Unsplash: https://images.unsplash.com/photo-XXXXX — use a real Unsplash photo id that depicts the same type of dish (search by dish name). Use different photo ids for different recipes.
+    The image must return HTTP 200 with Content-Type image/*. Do NOT use the same fallback image for every recipe; pick an image that matches the recipe title and ingredients.
 
 IMPORTANT: Return ONLY valid JSON in this exact structure:
 {
@@ -42,7 +43,7 @@ IMPORTANT: Return ONLY valid JSON in this exact structure:
   "prepTime": 15,
   "cookTime": 30,
   "servings": 4,
-  "image_url": "https://www.themealdb.com/images/media/meals/0umm891763364625.jpg",
+  "image_url": "ONE_URL_THAT_MATCHES_THIS_SPECIFIC_DISH_use_TheMealDB_or_Unsplash_with_different_id_per_recipe",
   "ingredients": [
     {"name": "ingredient name", "amount": 2, "unit": "cups"},
     {"name": "another ingredient", "amount": 1, "unit": "tbsp"}
@@ -74,7 +75,7 @@ IMPORTANT: Return ONLY valid JSON in this exact structure:
   ]
 }
 
-You MUST include "image_url" with a single working direct image URL. Prefer: https://www.themealdb.com/images/media/meals/0umm891763364625.jpg (or another TheMealDB meal image URL), or a valid Unsplash direct image URL (https://images.unsplash.com/photo-...). The URL must return a real image (HTTP 200, Content-Type image/jpeg or image/png). Do not use fake, placeholder, or redirect URLs.
+You MUST include "image_url" with a single working direct image URL that depicts THIS dish (e.g. a chicken recipe must have a chicken dish image, not a generic fritter image). Use a different TheMealDB meal id or Unsplash photo id for each recipe so no two different recipes share the same image. The URL must return HTTP 200 with Content-Type image/jpeg or image/png. Do not use fake, placeholder, or redirect URLs.
 
 Based on the ingredients and nutrition, list 2–4 short health_benefits (e.g. good for eyes, bones, heart, digestion) and 0–3 health_concerns or cautions (e.g. high sodium, high sugar, processed – enjoy in moderation). Be factual and brief. Use empty array for health_concerns if there are none. Do not include ingredients the user is allergic to or that violate their dietary preferences.`;
 }
@@ -150,7 +151,7 @@ export function buildModificationPrompt(
   }
 
   prompt += `\nProvide the modified recipe in the same JSON format as the original, including health_benefits and health_concerns (short arrays of strings) based on the modified ingredients and nutrition.`;
-  prompt += `\nInclude "image_url": one working direct image URL (e.g. https://www.themealdb.com/images/media/meals/0umm891763364625.jpg or a valid Unsplash image URL). Must return HTTP 200 with Content-Type image/*—no placeholders or broken links.`;
+  prompt += `\nInclude "image_url": one working direct image URL that matches the modified dish (use a different TheMealDB meal id or Unsplash photo id—do not reuse the same image URL for every recipe). Must return HTTP 200 with Content-Type image/*—no placeholders or broken links.`;
   prompt += `\nEnsure all ingredient amounts are proportionally adjusted.`;
   prompt += `\nUpdate nutritional information to reflect the changes.`;
 

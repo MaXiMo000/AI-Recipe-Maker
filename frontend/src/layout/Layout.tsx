@@ -18,8 +18,8 @@ export function Layout() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg)]">
-      <a href="#main-content" className="skip-link">
+    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] safe-area-x">
+      <a href="#main-content" className="skip-link no-print">
         Skip to main content
       </a>
       <OfflineBanner />
@@ -27,7 +27,7 @@ export function Layout() {
       <main id="main-content" className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8" tabIndex={-1}>
         <Outlet />
       </main>
-      <footer className="border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)] py-6 mt-auto">
+      <footer className="no-print border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)] py-6 mt-auto">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-content-muted">
           <nav className="flex flex-wrap items-center justify-center gap-4">
             <Link to="/" className="hover:text-primary-600 transition-colors">Home</Link>

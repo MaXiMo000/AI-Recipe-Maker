@@ -95,10 +95,33 @@ export function RecipeDetailPage() {
   const totalMins = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);
   const metaItems = [recipe.cuisineType, recipe.mealType, recipe.difficulty].filter(Boolean);
 
+  const handlePrint = () => window.print();
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = recipe.title || 'Recipe';
+    const text = recipe.description ? `${title}: ${recipe.description}` : title;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text, url });
+        toast.success('Shared');
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') toast.error('Share failed');
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied');
+      } catch {
+        toast.error('Copy failed');
+      }
+    }
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto pb-12" {...swipeHandlers}>
-      {/* Back + actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
+      {/* Back + actions (hidden when printing) */}
+      <div className="no-print flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
         <Link
           to="/recipes"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50"
@@ -107,6 +130,12 @@ export function RecipeDetailPage() {
           Recipes
         </Link>
         <div className="flex items-center gap-2 flex-wrap">
+          <button type="button" onClick={handlePrint} className="btn-secondary text-sm py-2 min-h-[40px]">
+            Print
+          </button>
+          <button type="button" onClick={handleShare} className="btn-secondary text-sm py-2 min-h-[40px]">
+            Share
+          </button>
           {user && (
             <>
               <button
@@ -176,27 +205,26 @@ export function RecipeDetailPage() {
         onClose={() => setCollectionOpen(false)}
       />
 
-      {/* Recipe image: show img when URL exists and loads; show placeholder when URL exists but fails */}
-      {recipe.imageUrl && (
-        <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-[var(--shadow-card)] mb-6 max-h-[280px] sm:max-h-[320px] bg-[var(--color-surface)]">
-          {imageError ? (
-            <div className="w-full h-full min-h-[160px] sm:min-h-[200px] bg-gradient-to-r from-primary-400 to-primary-600 flex items-center justify-center" aria-hidden>
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-90">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-            </div>
-          ) : (
-            <img
-              src={recipe.imageUrl}
-              alt=""
-              className="w-full h-full object-cover"
-              onError={() => setImageError(true)}
-            />
-          )}
-        </div>
-      )}
+      <div className="recipe-print-content">
+      {/* Recipe image: show img when URL exists and loads; show orange placeholder when no URL or load fails */}
+      <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-[var(--shadow-card)] mb-6 max-h-[280px] sm:max-h-[320px] bg-[var(--color-surface)]">
+        {recipe.imageUrl && !imageError ? (
+          <img
+            src={recipe.imageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full min-h-[160px] sm:min-h-[200px] bg-gradient-to-r from-primary-400 to-primary-600 flex items-center justify-center" aria-hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-90">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+          </div>
+        )}
+      </div>
 
       {/* Hero title block */}
       <header className="rounded-2xl bg-gradient-to-br from-primary-50 via-white to-orange-50/50 border border-primary-100/80 p-5 sm:p-6 mb-6 shadow-sm">
@@ -325,6 +353,7 @@ export function RecipeDetailPage() {
           </ol>
         </div>
       </section>
+      </div>
     </div>
   );
 }

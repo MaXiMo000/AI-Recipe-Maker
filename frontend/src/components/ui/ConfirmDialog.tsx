@@ -75,7 +75,7 @@ export function ConfirmDialog({
     >
       <div
         ref={wrapRef}
-        className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg p-5 sm:p-6"
+        className="w-full max-w-md max-md:max-h-[90vh] max-md:overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg p-5 sm:p-6 max-md:m-0 max-md:max-w-[calc(100%-2rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="confirm-dialog-title" className="font-display text-lg font-semibold text-content">
