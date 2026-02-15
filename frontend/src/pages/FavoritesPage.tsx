@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getFavorites } from '@/services/recipes';
-import { Loader } from '@/components/ui/Loader';
-import { FavoriteButton } from '@/components/FavoriteButton';
+import { RecipeCard } from '@/components/RecipeCard';
+import { RecipeCardSkeleton } from '@/components/RecipeCardSkeleton';
 
 export function FavoritesPage() {
   const { data: recipes, isLoading, error } = useQuery({
@@ -12,7 +12,26 @@ export function FavoritesPage() {
   });
 
   if (isLoading) {
-    return <Loader variant="page" label="Loading favorites…" />;
+    return (
+      <div className="w-full">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="page-title flex items-center gap-3">
+            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600" aria-hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden>
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </span>
+            Favorites
+          </h1>
+          <p className="page-subtitle">Recipes you’ve saved. Quick access from here or from any recipe page.</p>
+        </div>
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading favorites">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <RecipeCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -65,37 +84,15 @@ export function FavoritesPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {list.map((r) => {
-            const totalMins = (r.prepTime ?? 0) + (r.cookTime ?? 0);
-            const meta = [r.cuisineType, r.mealType, r.difficulty].filter(Boolean);
-            return (
-              <div
-                key={r.id}
-                className="card-interactive group relative overflow-hidden"
-              >
-                <Link to={`/recipes/${r.id}`} className="block">
-                  <div className="h-1.5 w-full bg-gradient-to-r from-rose-400 to-primary-500 rounded-t-[var(--radius-card)]" aria-hidden />
-                  <div className="p-4 sm:p-5">
-                    <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug pr-10">
-                      {r.title}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {r.isCurated && <span className="pill pill-primary">Curated</span>}
-                      {meta.slice(0, 3).map((m) => (
-                        <span key={m} className="pill-muted">{m}</span>
-                      ))}
-                    </div>
-                    {totalMins > 0 && (
-                      <p className="mt-2 text-xs font-medium text-primary-600">{totalMins} min</p>
-                    )}
-                  </div>
-                </Link>
-                <div className="absolute top-3 right-3 z-10">
-                  <FavoriteButton recipeId={r.id} isFavorite={true} variant="card" />
-                </div>
-              </div>
-            );
-          })}
+          {list.map((r) => (
+            <RecipeCard
+              key={r.id}
+              recipe={{ ...r, isFavorite: true }}
+              showFavoriteButton
+              linkTo="/recipes"
+              variant="favorites"
+            />
+          ))}
         </div>
       )}
 

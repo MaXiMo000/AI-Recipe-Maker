@@ -1,11 +1,17 @@
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { toast } from 'sonner';
 import { Loader } from '@/components/ui/Loader';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { formatDate, formatDateRange } from '@/utils/format';
 
 export function MealPlanDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: plan, isLoading, error } = useQuery({
     queryKey: ['meal-plan', id],
@@ -23,6 +29,16 @@ export function MealPlanDetailPage() {
       return data.data;
     },
     enabled: !!id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/meal-plans/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+      toast.success('Meal plan deleted');
+      navigate('/meal-plans');
+    },
+    onError: () => toast.error('Failed to delete meal plan'),
   });
 
   if (isLoading || !id) {
@@ -43,9 +59,30 @@ export function MealPlanDetailPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto pb-12">
-      <Link to="/meal-plans" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50 transition-colors">
-        <span aria-hidden>←</span> Meal plans
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link to="/meal-plans" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50 transition-colors">
+          <span aria-hidden>←</span> Meal plans
+        </Link>
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          className="btn-danger text-sm py-2 min-h-[40px]"
+        >
+          Delete plan
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => deleteMutation.mutate()}
+        title="Delete meal plan?"
+        message="This cannot be undone. The plan and its shopping list will be removed."
+        variant="danger"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        loading={deleteMutation.isPending}
+      />
 
       <header className="mt-4 rounded-2xl bg-gradient-to-br from-primary-50 via-white to-orange-50/50 border border-primary-100/80 p-5 sm:p-6 shadow-sm">
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-content tracking-tight">

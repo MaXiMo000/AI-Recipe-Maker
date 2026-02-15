@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
-import { Loader } from '@/components/ui/Loader';
+import { MealPlanCardSkeleton } from '@/components/MealPlanCardSkeleton';
 import { formatDateRange } from '@/utils/format';
 
 export function MealPlansPage() {
@@ -30,7 +30,21 @@ export function MealPlansPage() {
   });
 
   if (isLoading) {
-    return <Loader variant="page" label="Loading meal plans…" />;
+    return (
+      <div className="w-full">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <div>
+            <h1 className="page-title">Meal plans</h1>
+            <p className="page-subtitle">Plan your week and get a shopping list.</p>
+          </div>
+        </div>
+        <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading meal plans">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <MealPlanCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {

@@ -9,7 +9,7 @@ const navLinks = [
   { to: '/meal-plans', label: 'Meal Plans' },
   { to: '/nutrition', label: 'Nutrition' },
 ];
-const navLinksAuthenticated = [...navLinks, { to: '/favorites', label: 'Favorites' }];
+const navLinksAuthenticated = [...navLinks, { to: '/favorites', label: 'Favorites' }, { to: '/collections', label: 'Collections' }];
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -24,7 +24,7 @@ export function Header() {
     navigate('/');
   };
 
-  const linkClass = "text-sm font-medium text-content-muted hover:text-primary-600 transition-colors rounded-md px-2 py-1.5 -mx-2 -my-1.5";
+  const linkClass = "inline-flex items-center min-h-[2.25rem] text-sm font-medium text-content-muted hover:text-primary-600 transition-colors rounded-md px-2 py-1.5 -mx-2 -my-1.5";
   const mobileLinkClass = "block w-full py-3 text-left text-base font-medium text-content hover:text-primary-600 hover:bg-surface-100 rounded-lg px-4 -mx-4 transition-colors";
 
   return (
@@ -46,13 +46,13 @@ export function Header() {
           ))}
           {user ? (
             <>
-              <Link to="/generate" className="text-sm font-medium text-primary-600 hover:text-primary-700">
+              <Link to="/generate" className="inline-flex items-center min-h-[2.25rem] rounded-md px-2 py-1.5 -mx-2 -my-1.5 text-sm font-medium text-primary-600 hover:text-primary-700">
                 Generate
               </Link>
               <Link to="/profile" className={linkClass} title={user.fullName || user.email}>
-                <span className="max-w-[120px] truncate inline-block">{user.fullName || user.email}</span>
+                <span className="max-w-[120px] truncate">{user.fullName || user.email}</span>
               </Link>
-              <button type="button" onClick={handleLogout} className="text-sm font-medium text-content-subtle hover:text-content">
+              <button type="button" onClick={handleLogout} className="inline-flex items-center min-h-[2.25rem] rounded-md px-2 py-1.5 -mx-2 -my-1.5 text-sm font-medium text-content-subtle hover:text-content">
                 Log out
               </button>
             </>

@@ -1,9 +1,13 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
-import { Loader } from '@/components/ui/Loader';
+import { RecipeDetailSkeleton } from '@/components/RecipeDetailSkeleton';
 import { FavoriteButton } from '@/components/FavoriteButton';
+import { ModifyRecipeModal, type ModifyRecipeForm } from '@/components/ModifyRecipeModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { AddToCollectionModal } from '@/components/AddToCollectionModal';
 import { useTouchHandler } from '@/hooks';
 import { useAuth } from '@/context/AuthContext';
 
@@ -12,6 +16,10 @@ export function RecipeDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [modifyOpen, setModifyOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [collectionOpen, setCollectionOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const { handleSwipe } = useTouchHandler();
   const swipeHandlers = handleSwipe({ onSwipeRight: () => navigate('/recipes') });
 
@@ -24,6 +32,10 @@ export function RecipeDetailPage() {
     enabled: !!id,
   });
 
+  useEffect(() => {
+    setImageError(false);
+  }, [recipe?.id, recipe?.imageUrl]);
+
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/recipes/${id}`),
     onSuccess: () => {
@@ -34,8 +46,33 @@ export function RecipeDetailPage() {
     onError: () => toast.error('Failed to delete recipe'),
   });
 
+  const modifyMutation = useMutation({
+    mutationFn: (form: ModifyRecipeForm) =>
+      api.post<{ success: boolean; data: { id: string } }>(`/recipes/modify/${id}`, {
+        modifications: {
+          servings: form.servings,
+          dietary: form.dietary?.length ? form.dietary : undefined,
+          reduceTime: form.reduceTime || undefined,
+          simplify: form.simplify || undefined,
+          makeHealthier: form.makeHealthier || undefined,
+          substitutions: form.substitutions && Object.keys(form.substitutions).length ? form.substitutions : undefined,
+        },
+      }),
+    onSuccess: (res) => {
+      const newRecipe = res.data?.data;
+      if (newRecipe?.id) {
+        queryClient.invalidateQueries({ queryKey: ['recipes'] });
+        queryClient.invalidateQueries({ queryKey: ['search-recipes'] });
+        toast.success('Modified recipe created');
+        setModifyOpen(false);
+        navigate(`/recipes/${newRecipe.id}`);
+      }
+    },
+    onError: () => toast.error('Failed to modify recipe'),
+  });
+
   if (isLoading || !id) {
-    return <Loader variant="page" label="Loading recipe…" />;
+    return <RecipeDetailSkeleton />;
   }
 
   if (error || !recipe) {
@@ -69,27 +106,97 @@ export function RecipeDetailPage() {
           <span aria-hidden>←</span>
           Recipes
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {user && (
-            <FavoriteButton
+            <>
+              <button
+                type="button"
+                onClick={() => setCollectionOpen(true)}
+                className="btn-secondary text-sm py-2 min-h-[40px]"
+              >
+                Add to collection
+              </button>
+              <FavoriteButton
               recipeId={recipe.id!}
               isFavorite={recipe.isFavorite ?? false}
               variant="detail"
               stopPropagation={false}
             />
+            </>
           )}
           {!recipe.isCurated && (
-            <button
-              type="button"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="btn-danger text-sm py-2 min-h-[40px]"
-            >
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-            </button>
+            <>
+              <Link to={`/recipes/${id}/edit`} className="btn-secondary text-sm py-2 min-h-[40px] inline-flex items-center justify-center">
+                Edit
+              </Link>
+              <button
+                type="button"
+                onClick={() => setModifyOpen(true)}
+                disabled={modifyMutation.isPending}
+                className="btn-secondary text-sm py-2 min-h-[40px]"
+              >
+                Modify
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(true)}
+                disabled={deleteMutation.isPending}
+                className="btn-danger text-sm py-2 min-h-[40px]"
+              >
+                Delete
+              </button>
+            </>
           )}
         </div>
       </div>
+
+      <ModifyRecipeModal
+        open={modifyOpen}
+        currentServings={recipe.servings ?? 4}
+        onClose={() => setModifyOpen(false)}
+        onSubmit={(form) => modifyMutation.mutate(form)}
+        loading={modifyMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => deleteMutation.mutate()}
+        title="Delete recipe?"
+        message="This cannot be undone."
+        variant="danger"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        loading={deleteMutation.isPending}
+      />
+
+      <AddToCollectionModal
+        open={collectionOpen}
+        recipeId={recipe.id!}
+        onClose={() => setCollectionOpen(false)}
+      />
+
+      {/* Recipe image: show img when URL exists and loads; show placeholder when URL exists but fails */}
+      {recipe.imageUrl && (
+        <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] shadow-[var(--shadow-card)] mb-6 max-h-[280px] sm:max-h-[320px] bg-[var(--color-surface)]">
+          {imageError ? (
+            <div className="w-full h-full min-h-[160px] sm:min-h-[200px] bg-gradient-to-r from-primary-400 to-primary-600 flex items-center justify-center" aria-hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-90">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </div>
+          ) : (
+            <img
+              src={recipe.imageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+          )}
+        </div>
+      )}
 
       {/* Hero title block */}
       <header className="rounded-2xl bg-gradient-to-br from-primary-50 via-white to-orange-50/50 border border-primary-100/80 p-5 sm:p-6 mb-6 shadow-sm">

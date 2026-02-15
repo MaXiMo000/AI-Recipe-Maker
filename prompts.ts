@@ -27,6 +27,10 @@ Please provide a complete recipe with:
 7. Step-by-step cooking instructions
 8. Helpful cooking tips
 9. Estimated nutritional information per serving
+10. image_url: ONE working direct image URL. The URL must return HTTP 200 with Content-Type image/* (e.g. image/jpeg). Use only these proven patterns:
+    - TheMealDB: https://www.themealdb.com/images/media/meals/XXXXXX.jpg (use a real meal id from their API or a known working id like 0umm891763364625 for a generic meal image)
+    - Unsplash direct: https://images.unsplash.com/photo-XXXXXXXX (use a real Unsplash photo id; the URL must end in .jpg or be a known Unsplash image URL format)
+    Do NOT use placeholder domains, broken links, or URLs that redirect to HTML. If unsure, prefer https://www.themealdb.com/images/media/meals/0umm891763364625.jpg or another verified direct image URL.
 
 IMPORTANT: Return ONLY valid JSON in this exact structure:
 {
@@ -38,6 +42,7 @@ IMPORTANT: Return ONLY valid JSON in this exact structure:
   "prepTime": 15,
   "cookTime": 30,
   "servings": 4,
+  "image_url": "https://www.themealdb.com/images/media/meals/0umm891763364625.jpg",
   "ingredients": [
     {"name": "ingredient name", "amount": 2, "unit": "cups"},
     {"name": "another ingredient", "amount": 1, "unit": "tbsp"}
@@ -68,6 +73,8 @@ IMPORTANT: Return ONLY valid JSON in this exact structure:
     "Or leave empty [] if no significant concerns"
   ]
 }
+
+You MUST include "image_url" with a single working direct image URL. Prefer: https://www.themealdb.com/images/media/meals/0umm891763364625.jpg (or another TheMealDB meal image URL), or a valid Unsplash direct image URL (https://images.unsplash.com/photo-...). The URL must return a real image (HTTP 200, Content-Type image/jpeg or image/png). Do not use fake, placeholder, or redirect URLs.
 
 Based on the ingredients and nutrition, list 2–4 short health_benefits (e.g. good for eyes, bones, heart, digestion) and 0–3 health_concerns or cautions (e.g. high sodium, high sugar, processed – enjoy in moderation). Be factual and brief. Use empty array for health_concerns if there are none. Do not include ingredients the user is allergic to or that violate their dietary preferences.`;
 }
@@ -143,6 +150,7 @@ export function buildModificationPrompt(
   }
 
   prompt += `\nProvide the modified recipe in the same JSON format as the original, including health_benefits and health_concerns (short arrays of strings) based on the modified ingredients and nutrition.`;
+  prompt += `\nInclude "image_url": one working direct image URL (e.g. https://www.themealdb.com/images/media/meals/0umm891763364625.jpg or a valid Unsplash image URL). Must return HTTP 200 with Content-Type image/*—no placeholders or broken links.`;
   prompt += `\nEnsure all ingredient amounts are proportionally adjusted.`;
   prompt += `\nUpdate nutritional information to reflect the changes.`;
 

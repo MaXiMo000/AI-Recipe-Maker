@@ -39,6 +39,31 @@ export class RecipeAIService {
   }
 
   /**
+   * Validate that a URL returns 200 and content-type image/* (HEAD request, 5s timeout).
+   * Returns false on any failure so we don't store broken image URLs.
+   */
+  private async validateImageUrl(url: string): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, {
+        method: 'HEAD',
+        redirect: 'follow',
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AI-Recipe-Maker/1.0)' },
+      });
+      clearTimeout(timeout);
+      const ct = res.headers.get('content-type') ?? '';
+      const ok = res.ok && (ct.startsWith('image/') || ct.includes('image/'));
+      if (!ok) logger.info('Image URL validation failed', { url: url.slice(0, 80), status: res.status });
+      return ok;
+    } catch (e) {
+      logger.info('Image URL validation error', { url: url.slice(0, 80), error: e instanceof Error ? e.message : String(e) });
+      return false;
+    }
+  }
+
+  /**
    * Generate a recipe from ingredients using AI (Gemini or Claude)
    */
   async generateRecipe(
@@ -56,6 +81,13 @@ export class RecipeAIService {
 
       const text = await this.getAiText(prompt, 4096);
       const recipe = this.parseRecipeResponse(text);
+      if (recipe.imageUrl) {
+        const valid = await this.validateImageUrl(recipe.imageUrl);
+        if (!valid) {
+          recipe.imageUrl = undefined;
+          logger.info('Dropped invalid image URL for generated recipe');
+        }
+      }
       logger.info('Recipe generated successfully', { title: recipe.title });
       return recipe;
     } catch (error) {
@@ -107,7 +139,15 @@ export class RecipeAIService {
     try {
       const prompt = buildModificationPrompt(recipe, modifications);
       const text = await this.getAiText(prompt, 4096);
-      return this.parseRecipeResponse(text);
+      const modified = this.parseRecipeResponse(text);
+      if (modified.imageUrl) {
+        const valid = await this.validateImageUrl(modified.imageUrl);
+        if (!valid) {
+          modified.imageUrl = undefined;
+          logger.info('Dropped invalid image URL for modified recipe');
+        }
+      }
+      return modified;
     } catch (error) {
       logger.error('Failed to modify recipe:', error);
       throw error;
@@ -205,6 +245,12 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
       if (!parsed.title || !parsed.ingredients || !parsed.instructions) {
         throw new Error('Missing required recipe fields');
       }
+      const rawImageUrl = parsed.image_url ?? parsed.imageUrl;
+      const imageUrl =
+        typeof rawImageUrl === 'string' && rawImageUrl.startsWith('http')
+          ? rawImageUrl.trim()
+          : undefined;
+
       return {
         title: parsed.title,
         description: parsed.description || '',
@@ -220,6 +266,7 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
         tags: parsed.tags || [],
         healthBenefits: parsed.health_benefits ?? parsed.healthBenefits ?? [],
         healthConcerns: parsed.health_concerns ?? parsed.healthConcerns ?? [],
+        imageUrl,
         source: 'ai_generated',
         isPublic: false,
       };

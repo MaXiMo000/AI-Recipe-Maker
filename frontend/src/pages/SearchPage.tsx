@@ -1,21 +1,82 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import { Loader } from '@/components/ui/Loader';
-import { FavoriteButton } from '@/components/FavoriteButton';
+import { RecipeCard } from '@/components/RecipeCard';
+import { RecipeCardSkeleton } from '@/components/RecipeCardSkeleton';
+import { Select } from '@/components/ui/Select';
 import { useAuth } from '@/context/AuthContext';
-import { usePersistedState, useKeyboardShortcuts, KeyboardShortcuts } from '@/hooks';
+import { useKeyboardShortcuts, KeyboardShortcuts } from '@/hooks';
 
-const SEARCH_INPUT_KEY = 'recipe-search-query';
 const PER_PAGE = 20;
+const CUISINE_OPTIONS = [
+  { value: 'Italian', label: 'Italian' },
+  { value: 'Mexican', label: 'Mexican' },
+  { value: 'Indian', label: 'Indian' },
+  { value: 'Asian', label: 'Asian' },
+  { value: 'American', label: 'American' },
+  { value: 'International', label: 'International' },
+];
+const MEAL_TYPE_OPTIONS = [
+  { value: 'breakfast', label: 'Breakfast' },
+  { value: 'lunch', label: 'Lunch' },
+  { value: 'dinner', label: 'Dinner' },
+  { value: 'snack', label: 'Snack' },
+];
+const DIFFICULTY_OPTIONS = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
+];
 
 export function SearchPage() {
   const { user } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [q, setQ] = usePersistedState(SEARCH_INPUT_KEY, '');
-  const [submitted, setSubmitted] = usePersistedState(`${SEARCH_INPUT_KEY}-submitted`, '');
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const q = searchParams.get('q') ?? '';
+  const cuisineType = searchParams.get('cuisineType') ?? '';
+  const mealType = searchParams.get('mealType') ?? '';
+  const difficulty = searchParams.get('difficulty') ?? '';
+  const maxTime = searchParams.get('maxTime') ?? '';
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
+
+  const hasFilters = cuisineType || mealType || difficulty || maxTime;
+
+  const setParams = (updates: Record<string, string | number>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([k, v]) => {
+        const s = String(v).trim();
+        if (s) next.set(k, s);
+        else next.delete(k);
+      });
+      next.delete('page');
+      return next;
+    });
+  };
+
+  const setPageOnly = (p: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (p <= 1) next.delete('page');
+      else next.set('page', String(p));
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('cuisineType');
+      next.delete('mealType');
+      next.delete('difficulty');
+      next.delete('maxTime');
+      next.delete('page');
+      return next;
+    });
+  };
 
   useKeyboardShortcuts({
     [KeyboardShortcuts.CTRL_K]: (e) => {
@@ -29,11 +90,15 @@ export function SearchPage() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['search-recipes', submitted, page],
+    queryKey: ['search-recipes', q, cuisineType, mealType, difficulty, maxTime, page],
     queryFn: async () => {
-      const { data: res } = await api.get<{ success: boolean; data: any[]; pagination: any }>('/search/recipes', {
-        params: { q: submitted || undefined, limit: PER_PAGE, page },
-      });
+      const params: Record<string, string | number> = { limit: PER_PAGE, page };
+      if (q) params.q = q;
+      if (cuisineType) params.cuisineType = cuisineType;
+      if (mealType) params.mealType = mealType;
+      if (difficulty) params.difficulty = difficulty;
+      if (maxTime && !Number.isNaN(Number(maxTime))) params.maxTime = Number(maxTime);
+      const { data: res } = await api.get<{ success: boolean; data: any[]; pagination: any }>('/search/recipes', { params });
       return res;
     },
     enabled: true,
@@ -48,21 +113,29 @@ export function SearchPage() {
   return (
     <div className="w-full">
       <h1 className="page-title">Search recipes</h1>
-      <p className="page-subtitle">Find recipes by keyword.</p>
+      <p className="page-subtitle">Find recipes by keyword and filters.</p>
 
       <form
         className="mt-6 flex flex-col sm:flex-row gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          setSubmitted(q.trim());
-          setPage(1);
+          const value = (e.currentTarget.elements.namedItem('q') as HTMLInputElement)?.value?.trim() ?? '';
+          setParams({ q: value });
         }}
       >
         <input
           ref={searchInputRef}
+          name="q"
           type="search"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            const v = e.target.value;
+            if (v) next.set('q', v);
+            else next.delete('q');
+            next.delete('page');
+            return next;
+          })}
           placeholder="e.g. chicken, pasta, quick dinner..."
           className="input-base flex-1"
         />
@@ -71,42 +144,102 @@ export function SearchPage() {
         </button>
       </form>
 
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          className="btn-secondary text-sm py-2 px-3 md:hidden"
+        >
+          {filtersOpen ? 'Hide filters' : 'Filters'}
+          {hasFilters && <span className="ml-1.5 text-primary-600">({[cuisineType, mealType, difficulty, maxTime].filter(Boolean).length})</span>}
+        </button>
+        <div className={`mt-3 gap-3 flex flex-wrap items-end ${filtersOpen ? 'flex' : 'hidden md:flex'}`}>
+          <div className="min-w-[140px]">
+            <label htmlFor="search-cuisine" className="block text-xs font-medium text-content-muted mb-1">Cuisine</label>
+            <Select
+              id="search-cuisine"
+              value={cuisineType}
+              onChange={(v) => setParams({ cuisineType: v })}
+              options={CUISINE_OPTIONS}
+              placeholder="Any"
+              aria-label="Cuisine filter"
+            />
+          </div>
+          <div className="min-w-[140px]">
+            <label htmlFor="search-meal" className="block text-xs font-medium text-content-muted mb-1">Meal type</label>
+            <Select
+              id="search-meal"
+              value={mealType}
+              onChange={(v) => setParams({ mealType: v })}
+              options={MEAL_TYPE_OPTIONS}
+              placeholder="Any"
+              aria-label="Meal type filter"
+            />
+          </div>
+          <div className="min-w-[120px]">
+            <label htmlFor="search-difficulty" className="block text-xs font-medium text-content-muted mb-1">Difficulty</label>
+            <Select
+              id="search-difficulty"
+              value={difficulty}
+              onChange={(v) => setParams({ difficulty: v })}
+              options={DIFFICULTY_OPTIONS}
+              placeholder="Any"
+              aria-label="Difficulty filter"
+            />
+          </div>
+          <div className="min-w-[120px]">
+            <label htmlFor="search-maxtime" className="block text-xs font-medium text-content-muted mb-1">Max time (min)</label>
+            <input
+              id="search-maxtime"
+              type="number"
+              min={1}
+              placeholder="Any"
+              value={maxTime}
+              onChange={(e) => setParams({ maxTime: e.target.value })}
+              className="input-base w-full min-h-[44px] sm:min-h-[40px] py-2 text-sm"
+            />
+          </div>
+          {hasFilters && (
+            <button type="button" onClick={clearFilters} className="text-sm font-medium text-primary-600 hover:text-primary-700">
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+
       {isLoading ? (
-        <Loader variant="inline" label="Searching…" className="mt-8" />
+        <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Searching recipes">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <RecipeCardSkeleton key={i} />
+          ))}
+        </div>
       ) : (
         <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {recipes.length === 0 && submitted ? (
+          {recipes.length === 0 && (q || hasFilters) ? (
             <div className="col-span-full rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-white/50 p-12 text-center">
               <p className="text-content-muted font-medium">No recipes found.</p>
               <p className="mt-1 text-sm text-content-subtle">Try a different search term.</p>
             </div>
           ) : (
-            recipes.map((r: any) => {
-              const meta = [r.cuisineType, r.mealType].filter(Boolean);
-              return (
-                <div key={r.id} className="card-interactive group relative overflow-hidden">
-                  <Link to={`/recipes/${r.id}`} className="block">
-                    <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
-                    <div className="p-4 sm:p-5 pr-12">
-                      <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
-                        {r.title}
-                      </h2>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {meta.map((m: string) => (
-                          <span key={m} className="pill-muted">{m}</span>
-                        ))}
-                        {meta.length === 0 && <span className="pill-muted">Recipe</span>}
-                      </div>
-                    </div>
-                  </Link>
-                  {user && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <FavoriteButton recipeId={r.id} isFavorite={r.isFavorite ?? false} variant="card" />
-                    </div>
-                  )}
-                </div>
-              );
-            })
+            recipes.map((r: any) => (
+              <RecipeCard
+                key={r.id}
+                recipe={{
+                  id: r.id,
+                  title: r.title,
+                  cuisineType: r.cuisineType,
+                  mealType: r.mealType,
+                  difficulty: r.difficulty,
+                  prepTime: r.prepTime,
+                  cookTime: r.cookTime,
+                  isCurated: r.isCurated,
+                  isFavorite: r.isFavorite,
+                  imageUrl: r.imageUrl,
+                }}
+                showFavoriteButton={!!user}
+                linkTo="/recipes"
+              />
+            ))
           )}
         </div>
       )}
@@ -119,7 +252,7 @@ export function SearchPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPageOnly(Math.max(1, currentPage - 1))}
                 disabled={currentPage <= 1}
                 className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -127,7 +260,7 @@ export function SearchPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPageOnly(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage >= totalPages}
                 className="btn-secondary text-sm py-2 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >

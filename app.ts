@@ -27,6 +27,7 @@ import mealPlanRoutes from './mealPlans';
 import nutritionRoutes from './nutrition';
 import searchRoutes from './search';
 import adminRoutes from './adminRoutes';
+import collectionsRoutes from './collections';
 
 // Database
 import { connectDatabase, initializeSchema } from './database';
@@ -96,6 +97,7 @@ class App {
     this.app.use('/api/nutrition', nutritionRoutes);
     this.app.use('/api/search', searchRoutes);
     this.app.use('/api/admin', adminRoutes);
+    this.app.use('/api/collections', collectionsRoutes);
 
     // 404 handler
     this.app.use(notFound);

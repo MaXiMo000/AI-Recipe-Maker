@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import { Loader } from '@/components/ui/Loader';
-import { FavoriteButton } from '@/components/FavoriteButton';
+import { RecipeCard } from '@/components/RecipeCard';
+import { RecipeCardSkeleton } from '@/components/RecipeCardSkeleton';
 import { useAuth } from '@/context/AuthContext';
 
 const PER_PAGE = 20;
@@ -18,6 +18,7 @@ interface Recipe {
   cookTime?: number;
   isCurated?: boolean;
   isFavorite?: boolean;
+  imageUrl?: string | null;
 }
 
 interface RecipesResponse {
@@ -43,7 +44,19 @@ export function RecipesPage() {
   });
 
   if (isLoading) {
-    return <Loader variant="page" label="Loading recipes…" />;
+    return (
+      <div className="w-full">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="page-title">Recipes</h1>
+          <p className="page-subtitle">Your recipes and curated recipes everyone can use.</p>
+        </div>
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading recipes">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <RecipeCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -80,36 +93,14 @@ export function RecipesPage() {
             </Link>
           </div>
         ) : (
-          recipes.map((r) => {
-            const totalMins = (r.prepTime ?? 0) + (r.cookTime ?? 0);
-            const meta = [r.cuisineType, r.mealType, r.difficulty].filter(Boolean);
-            return (
-              <div key={r.id} className="card-interactive group relative overflow-hidden">
-                <Link to={`/recipes/${r.id}`} className="block">
-                  <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
-                  <div className="p-4 sm:p-5 pr-12">
-                    <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
-                      {r.title}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {r.isCurated && <span className="pill pill-primary">Curated</span>}
-                      {meta.slice(0, 3).map((m) => (
-                        <span key={m} className="pill-muted">{m}</span>
-                      ))}
-                    </div>
-                    {totalMins > 0 && (
-                      <p className="mt-2 text-xs font-medium text-primary-600">{totalMins} min</p>
-                    )}
-                  </div>
-                </Link>
-                {user && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <FavoriteButton recipeId={r.id} isFavorite={r.isFavorite ?? false} variant="card" />
-                  </div>
-                )}
-              </div>
-            );
-          })
+          recipes.map((r) => (
+            <RecipeCard
+              key={r.id}
+              recipe={r}
+              showFavoriteButton={!!user}
+              linkTo="/recipes"
+            />
+          ))
         )}
       </div>
 

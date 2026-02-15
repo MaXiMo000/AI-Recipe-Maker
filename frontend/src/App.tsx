@@ -13,12 +13,15 @@ import { GoogleAuthCallbackPage } from '@/pages/GoogleAuthCallbackPage';
 import { GenerateRecipePage } from '@/pages/GenerateRecipePage';
 import { RecipesPage } from '@/pages/RecipesPage';
 import { RecipeDetailPage } from '@/pages/RecipeDetailPage';
+import { RecipeEditPage } from '@/pages/RecipeEditPage';
 import { MealPlansPage } from '@/pages/MealPlansPage';
 import { MealPlanDetailPage } from '@/pages/MealPlanDetailPage';
 import { NutritionPage } from '@/pages/NutritionPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { FavoritesPage } from '@/pages/FavoritesPage';
+import { CollectionsPage } from '@/pages/CollectionsPage';
+import { CollectionDetailPage } from '@/pages/CollectionDetailPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -53,6 +56,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <RecipesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recipes/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <RecipeEditPage />
                   </ProtectedRoute>
                 }
               />
@@ -101,6 +112,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <FavoritesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/collections"
+                element={
+                  <ProtectedRoute>
+                    <CollectionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/collections/:id"
+                element={
+                  <ProtectedRoute>
+                    <CollectionDetailPage />
                   </ProtectedRoute>
                 }
               />
