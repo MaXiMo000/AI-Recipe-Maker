@@ -45,6 +45,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
   // Per-user daily AI usage cap (recipe + meal-plan generation)
   AI_DAILY_LIMIT_PER_USER: z.string().transform(Number).default('15'),
+  // Optional: secret for admin endpoints (e.g. trigger TheMealDB update without Shell)
+  ADMIN_SECRET: z.string().optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -107,4 +109,5 @@ export const config = {
   },
   // Per-user daily AI cap
   aiDailyLimitPerUser: env.AI_DAILY_LIMIT_PER_USER,
+  adminSecret: env.ADMIN_SECRET,
 } as const;
