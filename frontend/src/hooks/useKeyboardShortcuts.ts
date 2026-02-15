@@ -21,11 +21,16 @@ export function useKeyboardShortcuts(
         target?.getAttribute('role') === 'textbox';
 
       const allowedInInputs = ['Escape', 'Tab'];
-      if (isInput && !allowedInInputs.includes(event.key)) {
-        if (!((event.ctrlKey || event.metaKey) && event.key === 'F')) return;
+      const isModKeyCombo = (event.ctrlKey || event.metaKey) && event.key.length === 1;
+      const allowSearchShortcuts = isModKeyCombo && /^[fk]$/i.test(event.key);
+      if (isInput && !allowedInInputs.includes(event.key) && !allowSearchShortcuts) {
+        return;
       }
 
-      const key = event.key;
+      const rawKey = event.key;
+      const key = rawKey.length === 1 && rawKey >= 'a' && rawKey <= 'z'
+        ? rawKey.toUpperCase()
+        : rawKey;
       const isCtrlOrCmd = event.ctrlKey || event.metaKey;
       let combination = '';
       if (isCtrlOrCmd) combination += 'Ctrl+';
