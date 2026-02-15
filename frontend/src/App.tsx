@@ -18,6 +18,7 @@ import { MealPlanDetailPage } from '@/pages/MealPlanDetailPage';
 import { NutritionPage } from '@/pages/NutritionPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { ProfilePage } from '@/pages/ProfilePage';
+import { FavoritesPage } from '@/pages/FavoritesPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -92,6 +93,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/favorites"
+                element={
+                  <ProtectedRoute>
+                    <FavoritesPage />
                   </ProtectedRoute>
                 }
               />

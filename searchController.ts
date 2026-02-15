@@ -16,7 +16,7 @@ function hashSearchParams(params: Record<string, unknown>): string {
   return createHash('sha256').update(str).digest('hex').slice(0, 16);
 }
 
-function formatRecipeRow(row: Record<string, unknown>) {
+function formatRecipeRow(row: Record<string, unknown>, isFavorite = false) {
   return {
     id: row.id,
     userId: row.user_id,
@@ -38,6 +38,7 @@ function formatRecipeRow(row: Record<string, unknown>) {
     imageUrl: row.image_url,
     source: row.source,
     isPublic: row.is_public,
+    isFavorite,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -117,7 +118,14 @@ class SearchController {
       [...params, limit, offset]
     );
 
-    const data = result.rows.map((row: Record<string, unknown>) => formatRecipeRow(row));
+    let favoriteIds = new Set<string>();
+    if (userId) {
+      const favResult = await query('SELECT recipe_id FROM user_favorites WHERE user_id = $1', [userId]);
+      favoriteIds = new Set((favResult.rows as { recipe_id: string }[]).map((r) => r.recipe_id));
+    }
+    const data = result.rows.map((row: Record<string, unknown>) =>
+      formatRecipeRow(row, userId ? favoriteIds.has(String(row.id)) : false)
+    );
     await cache.set(cacheKey, { data, total }, SEARCH_CACHE_TTL);
     return sendPaginated(res, data, { page, limit, total, totalPages: Math.ceil(total / limit) });
   });

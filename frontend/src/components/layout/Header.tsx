@@ -9,6 +9,7 @@ const navLinks = [
   { to: '/meal-plans', label: 'Meal Plans' },
   { to: '/nutrition', label: 'Nutrition' },
 ];
+const navLinksAuthenticated = [...navLinks, { to: '/favorites', label: 'Favorites' }];
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -35,7 +36,7 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-          {navLinks.map(({ to, label }) => (
+          {(user ? navLinksAuthenticated : navLinks).map(({ to, label }) => (
             <Link key={to} to={to} className={linkClass}>
               {label}
               {to === '/search' && isDesktop && (
@@ -83,7 +84,7 @@ export function Header() {
       {mobileOpen && (
         <div className="md:hidden border-t border-divider bg-card">
           <nav className="mx-auto max-w-6xl px-4 py-4 space-y-1">
-            {navLinks.map(({ to, label }) => (
+            {(user ? navLinksAuthenticated : navLinks).map(({ to, label }) => (
               <Link key={to} to={to} className={mobileLinkClass} onClick={() => setMobileOpen(false)}>
                 {label}
               </Link>

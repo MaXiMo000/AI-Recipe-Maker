@@ -284,7 +284,14 @@ class RecipeController {
       [...selectParams, limit, offset]
     );
 
-    const recipes = result.rows.map((row: Record<string, unknown>) => this.formatRecipe(row));
+    let favoriteIds = new Set<string>();
+    if (req.user) {
+      const favResult = await query('SELECT recipe_id FROM user_favorites WHERE user_id = $1', [req.user.id]);
+      favoriteIds = new Set((favResult.rows as { recipe_id: string }[]).map((r) => r.recipe_id));
+    }
+    const recipes = result.rows.map((row: Record<string, unknown>) =>
+      this.formatRecipe(row, req.user ? favoriteIds.has(String(row.id)) : false)
+    );
 
     sendPaginated(res, recipes, {
       page: Number(page),
@@ -300,8 +307,8 @@ class RecipeController {
   getRecipeById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
-    // Check cache first
-    const cached = await cache.get(`recipe:${id}`);
+    // Check cache first (skip cache if user is logged in so we can add isFavorite)
+    const cached = req.user ? null : await cache.get<Recipe>(`recipe:${id}`);
     if (cached) {
       return sendSuccess(res, cached);
     }
@@ -312,10 +319,19 @@ class RecipeController {
       throw new AppError('Recipe not found', 404);
     }
 
-    const recipe = this.formatRecipe(result.rows[0]);
+    let isFavorite = false;
+    if (req.user) {
+      const favResult = await query(
+        'SELECT 1 FROM user_favorites WHERE user_id = $1 AND recipe_id = $2',
+        [req.user.id, id]
+      );
+      isFavorite = favResult.rows.length > 0;
+    }
+    const recipe = this.formatRecipe(result.rows[0], isFavorite);
 
-    // Cache for 1 hour
-    await cache.set(`recipe:${id}`, recipe, 3600);
+    if (!req.user) {
+      await cache.set(`recipe:${id}`, recipe, 3600);
+    }
 
     return sendSuccess(res, recipe);
   });
@@ -509,30 +525,31 @@ class RecipeController {
   /**
    * Helper: Format recipe from database row
    */
-  private formatRecipe(row: any): Recipe {
+  private formatRecipe(row: Record<string, unknown>, isFavorite = false): Recipe {
     return {
-      id: row.id,
-      userId: row.user_id,
+      id: row.id as string,
+      userId: row.user_id as string | undefined,
       isCurated: row.user_id == null,
-      title: row.title,
-      description: row.description,
-      cuisineType: row.cuisine_type,
-      mealType: row.meal_type,
-      difficulty: row.difficulty,
-      prepTime: row.prep_time,
-      cookTime: row.cook_time,
-      servings: row.servings,
-      ingredients: row.ingredients,
-      instructions: row.instructions,
-      nutritionalInfo: row.nutritional_info,
-      tags: row.tags,
-      imageUrl: row.image_url,
-      healthBenefits: row.health_benefits ?? [],
-      healthConcerns: row.health_concerns ?? [],
-      source: row.source ?? (row.user_id == null ? 'curated' : 'user_created'),
-      isPublic: row.is_public,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      title: row.title as string,
+      description: (row.description as string) ?? '',
+      cuisineType: row.cuisine_type as string | undefined,
+      mealType: row.meal_type as string | undefined,
+      difficulty: (row.difficulty as Recipe['difficulty']) ?? 'medium',
+      prepTime: Number(row.prep_time) ?? 0,
+      cookTime: Number(row.cook_time) ?? 0,
+      servings: Number(row.servings) ?? 4,
+      ingredients: (row.ingredients as Recipe['ingredients']) ?? [],
+      instructions: (row.instructions as Recipe['instructions']) ?? [],
+      nutritionalInfo: row.nutritional_info as Recipe['nutritionalInfo'],
+      tags: (row.tags as string[]) ?? [],
+      imageUrl: row.image_url as string | undefined,
+      healthBenefits: (row.health_benefits as string[]) ?? [],
+      healthConcerns: (row.health_concerns as string[]) ?? [],
+      source: (row.source as Recipe['source']) ?? (row.user_id == null ? 'curated' : 'user_created'),
+      isPublic: Boolean(row.is_public),
+      isFavorite,
+      createdAt: row.created_at as Date | undefined,
+      updatedAt: row.updated_at as Date | undefined,
     };
   }
 }

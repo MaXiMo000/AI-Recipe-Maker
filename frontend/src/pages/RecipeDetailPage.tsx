@@ -3,12 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { Loader } from '@/components/ui/Loader';
+import { FavoriteButton } from '@/components/FavoriteButton';
 import { useTouchHandler } from '@/hooks';
+import { useAuth } from '@/context/AuthContext';
 
 export function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { handleSwipe } = useTouchHandler();
   const swipeHandlers = handleSwipe({ onSwipeRight: () => navigate('/recipes') });
 
@@ -66,16 +69,26 @@ export function RecipeDetailPage() {
           <span aria-hidden>←</span>
           Recipes
         </Link>
-        {!recipe.isCurated && (
-          <button
-            type="button"
-            onClick={() => deleteMutation.mutate()}
-            disabled={deleteMutation.isPending}
-            className="btn-danger text-sm py-2 min-h-[40px]"
-          >
-            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {user && (
+            <FavoriteButton
+              recipeId={recipe.id!}
+              isFavorite={recipe.isFavorite ?? false}
+              variant="detail"
+              stopPropagation={false}
+            />
+          )}
+          {!recipe.isCurated && (
+            <button
+              type="button"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="btn-danger text-sm py-2 min-h-[40px]"
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Hero title block */}

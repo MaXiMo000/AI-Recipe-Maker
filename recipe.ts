@@ -76,6 +76,8 @@ export interface Recipe {
   healthBenefits?: string[];
   /** Short health concerns or cautions (e.g. "High sodium – limit if watching blood pressure", "Processed – enjoy in moderation") */
   healthConcerns?: string[];
+  /** True when the current user has added this recipe to favorites */
+  isFavorite?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

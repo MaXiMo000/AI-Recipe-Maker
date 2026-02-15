@@ -39,6 +39,13 @@ router.get(
   recipeController.getRecipes
 );
 
+// Must be before /:id so "favorites" is not treated as recipe id
+router.get(
+  '/favorites/list',
+  auth,
+  recipeController.getFavorites
+);
+
 router.get(
   '/:id',
   optionalAuth as RequestHandler,
@@ -75,12 +82,6 @@ router.delete(
   '/:id/favorite',
   auth,
   recipeController.removeFromFavorites
-);
-
-router.get(
-  '/favorites/list',
-  auth,
-  recipeController.getFavorites
 );
 
 export default router;

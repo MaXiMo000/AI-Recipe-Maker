@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { Loader } from '@/components/ui/Loader';
+import { FavoriteButton } from '@/components/FavoriteButton';
+import { useAuth } from '@/context/AuthContext';
 
 const PER_PAGE = 20;
 
@@ -15,6 +17,7 @@ interface Recipe {
   prepTime?: number;
   cookTime?: number;
   isCurated?: boolean;
+  isFavorite?: boolean;
 }
 
 interface RecipesResponse {
@@ -24,6 +27,7 @@ interface RecipesResponse {
 }
 
 export function RecipesPage() {
+  const { user } = useAuth();
   const [page, setPage] = useState(1);
 
   const { data, isLoading, error } = useQuery({
@@ -80,27 +84,30 @@ export function RecipesPage() {
             const totalMins = (r.prepTime ?? 0) + (r.cookTime ?? 0);
             const meta = [r.cuisineType, r.mealType, r.difficulty].filter(Boolean);
             return (
-              <Link
-                key={r.id}
-                to={`/recipes/${r.id}`}
-                className="card-interactive group block overflow-hidden"
-              >
-                <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
-                <div className="p-4 sm:p-5">
-                  <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
-                    {r.title}
-                  </h2>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {r.isCurated && <span className="pill pill-primary">Curated</span>}
-                    {meta.slice(0, 3).map((m) => (
-                      <span key={m} className="pill-muted">{m}</span>
-                    ))}
+              <div key={r.id} className="card-interactive group relative overflow-hidden">
+                <Link to={`/recipes/${r.id}`} className="block">
+                  <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
+                  <div className="p-4 sm:p-5 pr-12">
+                    <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
+                      {r.title}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {r.isCurated && <span className="pill pill-primary">Curated</span>}
+                      {meta.slice(0, 3).map((m) => (
+                        <span key={m} className="pill-muted">{m}</span>
+                      ))}
+                    </div>
+                    {totalMins > 0 && (
+                      <p className="mt-2 text-xs font-medium text-primary-600">{totalMins} min</p>
+                    )}
                   </div>
-                  {totalMins > 0 && (
-                    <p className="mt-2 text-xs font-medium text-primary-600">{totalMins} min</p>
-                  )}
-                </div>
-              </Link>
+                </Link>
+                {user && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <FavoriteButton recipeId={r.id} isFavorite={r.isFavorite ?? false} variant="card" />
+                  </div>
+                )}
+              </div>
             );
           })
         )}

@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { Loader } from '@/components/ui/Loader';
+import { FavoriteButton } from '@/components/FavoriteButton';
+import { useAuth } from '@/context/AuthContext';
 import { usePersistedState, useKeyboardShortcuts, KeyboardShortcuts } from '@/hooks';
 
 const SEARCH_INPUT_KEY = 'recipe-search-query';
 const PER_PAGE = 20;
 
 export function SearchPage() {
+  const { user } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = usePersistedState(SEARCH_INPUT_KEY, '');
   const [submitted, setSubmitted] = usePersistedState(`${SEARCH_INPUT_KEY}-submitted`, '');
@@ -81,24 +84,27 @@ export function SearchPage() {
             recipes.map((r: any) => {
               const meta = [r.cuisineType, r.mealType].filter(Boolean);
               return (
-                <Link
-                  key={r.id}
-                  to={`/recipes/${r.id}`}
-                  className="card-interactive group block overflow-hidden"
-                >
-                  <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
-                  <div className="p-4 sm:p-5">
-                    <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
-                      {r.title}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {meta.map((m: string) => (
-                        <span key={m} className="pill-muted">{m}</span>
-                      ))}
-                      {meta.length === 0 && <span className="pill-muted">Recipe</span>}
+                <div key={r.id} className="card-interactive group relative overflow-hidden">
+                  <Link to={`/recipes/${r.id}`} className="block">
+                    <div className="h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-t-[var(--radius-card)]" aria-hidden />
+                    <div className="p-4 sm:p-5 pr-12">
+                      <h2 className="font-display font-semibold text-content group-hover:text-primary-600 transition-colors line-clamp-2 text-lg leading-snug">
+                        {r.title}
+                      </h2>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {meta.map((m: string) => (
+                          <span key={m} className="pill-muted">{m}</span>
+                        ))}
+                        {meta.length === 0 && <span className="pill-muted">Recipe</span>}
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                  {user && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <FavoriteButton recipeId={r.id} isFavorite={r.isFavorite ?? false} variant="card" />
+                    </div>
+                  )}
+                </div>
               );
             })
           )}
