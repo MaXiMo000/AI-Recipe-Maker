@@ -1,40 +1,45 @@
 # 🍳 AI Recipe Maker
 
-An intelligent, full-stack web application that uses AI to generate, modify, and plan recipes with comprehensive nutritional analysis and meal planning capabilities.
+A full-stack web app that uses **Claude AI** to generate, modify, and plan recipes from your ingredients—with nutrition analysis, meal plans, search, and collections.
+
+Turn what you have into what you eat: describe ingredients and preferences, get tailored recipes and weekly plans, track nutrition, and organize everything in one place.
+
+---
 
 ## ✨ Features
 
-- **AI Recipe Generation**: Generate unique recipes from available ingredients using Claude AI
-- **Recipe Modification**: Adapt recipes for dietary restrictions, servings, and preferences
-- **Meal Planning**: Create weekly meal plans with automated shopping lists
-- **Nutritional Analysis**: Detailed nutritional breakdowns for all recipes
-- **Hybrid AI Approach**: Combines Claude AI with curated recipe database for best results
-- **User Profiles**: Save preferences, favorites, and dietary restrictions
-- **Search & Filter**: Advanced recipe search with multiple filters
-- **Collections**: Organize recipes into custom collections
+**Recipe creation & editing**
+- **AI generation** — Generate recipes from available ingredients using Claude; get title, description, cuisine, meal type, difficulty, times, servings, ingredients, steps, nutrition, health benefits, and a working image URL.
+- **Modify recipe** — Change servings, dietary needs, or ingredients; AI returns an updated recipe with validated image URL.
+- **Edit & custom recipes** — Edit any recipe or create one manually; all recipes support full nutrition and images.
+
+**Discovery & organization**
+- **Search & filter** — Search by name; filter by cuisine, meal type, difficulty, max time; combine with curated and AI-generated recipes.
+- **Collections** — Create collections and add recipes; view and manage them from Collections and collection detail pages.
+- **Favorites** — Mark recipes as favorites and access them from a dedicated Favorites page.
+
+**Meal planning & nutrition**
+- **Meal plans** — Generate weekly meal plans; view plan detail and delete plans; shopping list support.
+- **Nutrition** — Per-recipe nutritional breakdown; daily summary and nutrition goals in Profile.
+
+**Account & auth**
+- **User profiles** — Save dietary restrictions, preferences, and nutrition goals.
+- **Auth** — Email/password and optional Google OAuth; JWT in httpOnly cookies; protected routes for generate, recipes, meal plans, nutrition, profile, favorites, and collections.
+
+---
 
 ## 🏗️ Architecture
 
-### Tech Stack
+**Stack**
+- **Frontend:** React 18, TypeScript, Redux Toolkit, Tailwind CSS, React Query, Vite.
+- **Backend:** Node.js, Express, TypeScript, PostgreSQL, Redis, Claude (Anthropic) API, JWT auth.
+- **Ops:** Docker & Docker Compose, Nginx reverse proxy; CI/CD via GitHub Actions.
 
-**Frontend:**
-- React 18 + TypeScript
-- Redux Toolkit for state management
-- Tailwind CSS for styling
-- React Query for data fetching
-- Vite for build tooling
+**Project layout**
+- Backend lives in the **repository root** (`app.ts`, routes, controllers, services).
+- Frontend lives in **`frontend/`** (Vite + React app).
 
-**Backend:**
-- Node.js + Express + TypeScript
-- PostgreSQL for data storage
-- Redis for caching
-- Claude API for AI generation
-- JWT authentication
-
-**Infrastructure:**
-- Docker & Docker Compose
-- Nginx reverse proxy
-- CI/CD with GitHub Actions
+---
 
 ## 🚀 Quick Start
 
@@ -44,54 +49,45 @@ An intelligent, full-stack web application that uses AI to generate, modify, and
 - PostgreSQL 15+
 - Redis 7+
 - Docker & Docker Compose (optional)
-- Anthropic API key
+- [Anthropic API key](https://console.anthropic.com/) for AI recipe generation
 
-### Installation
+### 1. Clone and env
 
-1. **Clone the repository**
 ```bash
 git clone https://github.com/yourusername/ai-recipe-maker.git
 cd ai-recipe-maker
 ```
 
-2. **Set up environment variables**
+Create `.env` in the project root (or copy from `.env.example` if present). Required:
+
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Claude API key from [Anthropic Console](https://console.anthropic.com/) |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string |
+| `JWT_SECRET` | Secret for JWT (e.g. `openssl rand -hex 32`) |
+
+**Anthropic API key:** Sign up at [console.anthropic.com](https://console.anthropic.com/) → API Keys → create a key. New accounts often get trial credit. Set `ANTHROPIC_API_KEY=sk-ant-api03-...` in `.env`. Never commit the key.
+
+### 2. Run with Docker (recommended)
+
+**Production (image built from source):**
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+docker-compose up -d
+# optional: docker-compose exec backend npm run seed
 ```
+Schema is created on first backend start.
 
-Required environment variables:
-- `ANTHROPIC_API_KEY`: Your Claude API key (see below)
-- `DATABASE_URL`: PostgreSQL connection string
-- `REDIS_URL`: Redis connection string
-- `JWT_SECRET`: Secret key for JWT tokens (generate with `openssl rand -hex 32`)
-
-**Getting an Anthropic API key (for recipe generation):**
-
-1. Go to [Anthropic Console](https://console.anthropic.com/) and sign up or log in.
-2. Open **API Keys** and create a key. New accounts often get a small amount of free credit to try the API.
-3. Put the key in `.env` as `ANTHROPIC_API_KEY=sk-ant-api03-...`. If you use Docker, the same `.env` is used so the backend container gets the key.
-4. There is no permanent free tier; after credits run out you add payment. Keep the key secret and never commit it.
-
-3. **Using Docker (Recommended)**
-
-   **Production (default)** — code is baked into the image; changes require rebuild. Schema is created automatically on first backend start.
-   ```bash
-   docker-compose up -d
-   # optional: docker-compose exec backend npm run seed
-   ```
-
-   **Development** — source is mounted; backend and frontend pick up changes automatically (nodemon + Vite HMR). Run with `--build` the first time (and when changing `Dockerfile.dev`):
-   ```bash
-   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-   ```
-   After that, `up` without `--build` is enough for code changes.
-
-4. **Manual Setup**
-
-**Backend:**
+**Development (mounted source, hot reload):**
 ```bash
-cd backend
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+Use `up` without `--build` afterward unless you change Dockerfile.dev.
+
+### 3. Manual run
+
+**Backend (from project root):**
+```bash
 npm install
 npm run build
 npm run migrate
@@ -105,194 +101,95 @@ npm install
 npm run dev
 ```
 
-### Access the Application
+### Access
 
-- **Frontend:** http://localhost:3000  
-  Main routes: `/` (home), `/login`, `/register`, `/generate`, `/recipes`, `/recipes/:id`, `/meal-plans`, `/meal-plans/:id`, `/nutrition`, `/search`, `/profile`.  
-  Log in or register to use Generate, Recipes, Meal Plans, Nutrition, and Profile.
-- **Backend API:** http://localhost:5000  
-  Health: http://localhost:5000/health
+| What | URL |
+|------|-----|
+| App | http://localhost:3000 |
+| API | http://localhost:5000 |
+| Health | http://localhost:5000/health |
 
-## 📖 API Documentation
-
-### Authentication Endpoints
-
-```
-POST /api/auth/register - Register new user
-POST /api/auth/login    - Login user
-POST /api/auth/logout   - Logout user
-GET  /api/auth/me       - Get current user
-PUT  /api/auth/profile  - Update user profile
-```
-
-### Recipe Endpoints
-
-```
-POST   /api/recipes/generate        - Generate recipe from ingredients
-POST   /api/recipes/modify/:id      - Modify existing recipe
-POST   /api/recipes/suggestions     - Get recipe suggestions
-GET    /api/recipes                 - List all recipes (with filters)
-GET    /api/recipes/:id             - Get single recipe
-POST   /api/recipes                 - Create custom recipe
-PUT    /api/recipes/:id             - Update recipe
-DELETE /api/recipes/:id             - Delete recipe
-POST   /api/recipes/:id/favorite    - Add to favorites
-GET    /api/recipes/favorites/list  - Get user's favorites
-```
-
-### Meal Plan Endpoints
-
-```
-POST   /api/meal-plans/generate         - Generate meal plan
-GET    /api/meal-plans                  - List meal plans
-GET    /api/meal-plans/:id              - Get meal plan
-PUT    /api/meal-plans/:id              - Update meal plan
-DELETE /api/meal-plans/:id              - Delete meal plan
-GET    /api/meal-plans/:id/shopping-list - Get shopping list
-```
-
-### Nutrition Endpoints
-
-```
-POST /api/nutrition/analyze        - Analyze recipe nutrition
-GET  /api/nutrition/daily-summary  - Get daily nutrition summary
-POST /api/nutrition/calculate      - Calculate nutrition for ingredients
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-See `.env.example` for all available configuration options.
-
-### Rate Limiting
-
-- Standard endpoints: 100 requests per 15 minutes
-- AI generation: 20 requests per 15 minutes
-- Authentication: 5 requests per 15 minutes
-
-### Database Schema
-
-The database schema is automatically created on first run. Key tables:
-- `users` - User accounts and preferences
-- `recipes` - Generated and custom recipes
-- `meal_plans` - User meal plans
-- `recipe_database` - Curated recipe database for hybrid approach
-- `user_favorites` - User favorite recipes
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests
-cd frontend
-npm test
-```
-
-## 📦 Deployment
-
-### Using Docker
-
-```bash
-# Build production images
-docker-compose -f docker-compose.prod.yml build
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Manual Deployment
-
-1. Build backend:
-```bash
-cd backend
-npm run build
-```
-
-2. Build frontend:
-```bash
-cd frontend
-npm run build
-```
-
-3. Deploy built files to your hosting provider (AWS, DigitalOcean, Railway, etc.)
-
-### Environment-Specific Configuration
-
-- **Development**: Use `.env` file
-- **Production**: Set environment variables in your hosting platform
-- **Staging**: Use `.env.staging`
-
-## 🔐 Security
-
-- JWT-based authentication with httpOnly cookies
-- Password hashing with bcrypt
-- Rate limiting on all endpoints
-- Input validation with Zod schemas
-- SQL injection prevention with parameterized queries
-- XSS protection with helmet middleware
-- CORS configuration
-
-## 📊 Monitoring
-
-- Error tracking: Configure Sentry (optional)
-- Logging: Winston logs to `logs/` directory
-- Health checks: `/health` endpoint
-- Metrics: Prometheus-compatible (can be added)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Write tests for new features
-- Update documentation
-- Follow conventional commits
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Anthropic](https://www.anthropic.com/) for Claude API
-- [USDA FoodData Central](https://fdc.nal.usda.gov/) for nutritional data
-- All open-source libraries used in this project
-
-## 📧 Support
-
-For support, email support@airecipemaker.com or open an issue on GitHub.
-
-## 🗺️ Roadmap
-
-- [ ] Mobile app (React Native)
-- [ ] Voice command integration
-- [ ] Image recognition for ingredient detection
-- [ ] Social features (share recipes, follow users)
-- [ ] Recipe video generation
-- [ ] Grocery delivery integration
-- [ ] Multi-language support
-- [ ] Offline mode (PWA)
-
-## 🎯 Getting Your API Key
-
-1. Go to [Anthropic Console](https://console.anthropic.com/)
-2. Sign up or log in
-3. Navigate to API Keys section
-4. Create a new API key
-5. Copy and paste it into your `.env` file
-
-**Note:** Keep your API key secret and never commit it to version control!
+**Routes (SPA):** `/` (home), `/login`, `/register`, `/google-auth`, `/search` — public.  
+**Protected (login required):** `/generate`, `/recipes`, `/recipes/:id`, `/recipes/:id/edit`, `/meal-plans`, `/meal-plans/:id`, `/nutrition`, `/profile`, `/favorites`, `/collections`, `/collections/:id`.  
+Any unknown path → `/404`.
 
 ---
 
-Made with ❤️ and powered by Claude AI
+## 📖 API Overview
+
+Base: `http://localhost:5000/api`
+
+| Area | Endpoints |
+|------|-----------|
+| **Auth** | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `PUT /auth/profile` |
+| **Recipes** | `POST /recipes/generate`, `POST /recipes/modify/:id`, `POST /recipes/suggestions`, `GET /recipes`, `GET /recipes/:id`, `POST /recipes`, `PUT /recipes/:id`, `DELETE /recipes/:id`, `POST /recipes/:id/favorite`, `GET /recipes/favorites/list` |
+| **Meal plans** | `POST /meal-plans/generate`, `GET /meal-plans`, `GET /meal-plans/:id`, `PUT /meal-plans/:id`, `DELETE /meal-plans/:id`, `GET /meal-plans/:id/shopping-list` |
+| **Nutrition** | `POST /nutrition/analyze`, `GET /nutrition/daily-summary`, `POST /nutrition/calculate` |
+| **Search** | Search/filter recipes (see backend `search` routes) |
+| **Collections** | CRUD for user collections and recipe membership |
+| **Admin** | Optional: seed/update TheMealDB, enrich curated health data |
+
+---
+
+## 🔧 Configuration
+
+- **Env:** All options (including optional Google OAuth, etc.) are documented in `.env.example` when present; otherwise configure from the table above and backend `environment.ts`.
+- **Rate limits:** General ~100/15min; AI generation ~20/15min; auth ~5/15min (exact values in `rateLimiter.ts`).
+- **Schema:** Created on first run. Main tables: `users`, `recipes`, `meal_plans`, `recipe_database`, `user_favorites`, collections tables.
+
+---
+
+## 🧪 Tests
+
+```bash
+# Backend (from project root if tests live there)
+npm test
+
+# Frontend
+cd frontend && npm test
+```
+
+---
+
+## 📦 Deployment
+
+**Docker:**
+```bash
+docker-compose -f docker-compose.prod.yml build
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+**Manual:** Build backend in root (`npm run build`), build frontend in `frontend/` (`npm run build`), then deploy the built backend and `frontend/dist` (or static host for frontend) to your provider. Set production env vars on the host.
+
+---
+
+## 🔐 Security
+
+- JWT in httpOnly cookies; bcrypt for passwords; rate limiting; Zod validation; parameterized SQL; Helmet and CORS.
+
+---
+
+## 📝 License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## 🙏 Credits
+
+- [Anthropic](https://www.anthropic.com/) — Claude API  
+- [USDA FoodData Central](https://fdc.nal.usda.gov/) — nutritional data  
+- [TheMealDB](https://www.themealdb.com/) — curated meal images and data
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Mobile app (e.g. React Native)
+- [ ] Voice / image input for ingredients
+- [ ] Social (share, follow)
+- [ ] Recipe video, grocery delivery, i18n, PWA/offline
+
+---
+
+Made with ❤️ and Claude AI
