@@ -35,29 +35,54 @@ const generateSchema = z.object({
 function buildShoppingListFromMeals(planDays: any[]): Array<{ ingredient: string; amount: number; unit: string; checked: boolean }> {
   const map = new Map<string, { amount: number; unit: string }>();
   for (const day of planDays) {
-    const meals = day.meals ? Object.values(day.meals) : [];
+    const mealsObj = day?.meals ?? day?.Meals ?? day;
+    const meals = Array.isArray(mealsObj) ? mealsObj : (mealsObj && typeof mealsObj === 'object' ? Object.values(mealsObj) : []);
     for (const meal of meals) {
       if (Array.isArray(meal)) {
         meal.forEach((m: any) => addMealIngredients(m, map));
-      } else if (meal && (meal as any).ingredients) {
-        addMealIngredients(meal as any, map);
+      } else if (meal) {
+        addMealIngredients(meal, map);
       }
     }
   }
   return Array.from(map.entries()).map(([key, { amount, unit }]) => {
-    // Key is "name|unit"; strip trailing pipe so we never show "oats|" when unit is empty
     const ingredient = key.includes('|') ? key.slice(0, key.lastIndexOf('|')).trim() : key.trim();
     return { ingredient: ingredient || key, amount, unit, checked: false };
   });
 }
 
+/** Parse "2 cups flour" or "1 tbsp oil" into { amount, unit, name } */
+function parseIngredientString(s: string): { amount: number; unit: string; name: string } | null {
+  const trimmed = s.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*(\S+)\s+(.+)$/) || trimmed.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+  if (match) {
+    if (match[3] != null) return { amount: Number(match[1]) || 1, unit: match[2].trim(), name: match[3].trim().toLowerCase() };
+    return { amount: Number(match[1]) || 1, unit: '', name: match[2].trim().toLowerCase() };
+  }
+  return { amount: 1, unit: '', name: trimmed.toLowerCase() };
+}
+
 function addMealIngredients(meal: any, map: Map<string, { amount: number; unit: string }>) {
-  const ingredients = meal.ingredients || [];
-  for (const ing of ingredients) {
-    const name = (typeof ing === 'string' ? ing : (ing.name || ing.ingredient || '')).trim().toLowerCase();
+  const ingredients = meal?.ingredients ?? meal?.ingredient ?? [];
+  const list = Array.isArray(ingredients) ? ingredients : [ingredients];
+  for (const ing of list) {
+    if (typeof ing === 'string') {
+      const parsed = parseIngredientString(ing);
+      if (!parsed?.name) continue;
+      const key = `${parsed.name}|${parsed.unit}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.amount += parsed.amount;
+      } else {
+        map.set(key, { amount: parsed.amount, unit: parsed.unit });
+      }
+      continue;
+    }
+    const name = (ing?.name ?? ing?.ingredient ?? '').toString().trim().toLowerCase();
     if (!name) continue;
-    const amount = Number(ing.amount) || 1;
-    const unit = (ing.unit || '').trim();
+    const amount = Number(ing?.amount ?? ing?.qty) || 1;
+    const unit = (ing?.unit ?? '').toString().trim();
     const key = `${name}|${unit}`;
     const existing = map.get(key);
     if (existing) {
@@ -134,7 +159,19 @@ class MealPlanController {
     if (result.rows.length === 0) {
       throw new AppError('Meal plan not found', 404);
     }
-    const plan = this.formatMealPlan(result.rows[0] as Record<string, unknown>);
+    const row = result.rows[0] as Record<string, unknown>;
+    const storedList = row.shopping_list;
+    const meals = row.meals;
+    if ((!storedList || (Array.isArray(storedList) && storedList.length === 0)) && meals) {
+      const daysArray = Array.isArray(meals) ? meals : [meals];
+      const recomputed = buildShoppingListFromMeals(daysArray);
+      if (recomputed.length > 0) {
+        row.shopping_list = recomputed;
+        await query('UPDATE meal_plans SET shopping_list = $2 WHERE id = $1 AND user_id = $3', [id, JSON.stringify(recomputed), userId]);
+        await invalidateMealPlan(id, userId);
+      }
+    }
+    const plan = this.formatMealPlan(row);
     await cache.set(cacheKey, plan, MEAL_PLAN_TTL);
     return sendSuccess(res, plan);
   });
@@ -182,14 +219,23 @@ class MealPlanController {
     const asText = format === 'text' || acceptPlain;
 
     const result = await query(
-      asText ? 'SELECT name, shopping_list FROM meal_plans WHERE id = $1 AND user_id = $2' : 'SELECT shopping_list FROM meal_plans WHERE id = $1 AND user_id = $2',
+      asText ? 'SELECT name, shopping_list, meals FROM meal_plans WHERE id = $1 AND user_id = $2' : 'SELECT shopping_list, meals FROM meal_plans WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
     if (result.rows.length === 0) {
       throw new AppError('Meal plan not found', 404);
     }
     const row = result.rows[0] as Record<string, unknown>;
-    const shoppingList = (row.shopping_list || []) as Array<{ ingredient: string; amount: number; unit: string }>;
+    let shoppingList = (row.shopping_list || []) as Array<{ ingredient: string; amount: number; unit: string }>;
+    if (Array.isArray(shoppingList) && shoppingList.length === 0 && row.meals) {
+      const daysArray = Array.isArray(row.meals) ? row.meals : [row.meals];
+      const recomputed = buildShoppingListFromMeals(daysArray);
+      if (recomputed.length > 0) {
+        shoppingList = recomputed;
+        await query('UPDATE meal_plans SET shopping_list = $2 WHERE id = $1 AND user_id = $3', [id, JSON.stringify(recomputed), userId]);
+        await invalidateMealPlan(id, userId);
+      }
+    }
 
     if (asText) {
       const planName = (row.name as string) || 'Meal plan';

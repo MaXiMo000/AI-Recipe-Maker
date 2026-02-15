@@ -82,16 +82,25 @@ class NutritionController {
       return sendSuccess(res, cached);
     }
 
+    const dateNorm = date.slice(0, 10);
     const planResult = await query(
-      `SELECT meals FROM meal_plans
+      `SELECT meals, start_date FROM meal_plans
        WHERE user_id = $1 AND start_date <= $2::date AND end_date >= $2::date`,
-      [userId, date]
+      [userId, dateNorm]
     );
 
     let total: Record<string, number> = emptyNutrition();
-    for (const row of planResult.rows as { meals: any[] }[]) {
+    for (const row of planResult.rows as { meals: any[]; start_date: string | Date }[]) {
       const days = Array.isArray(row.meals) ? row.meals : [];
-      const day = days.find((d: any) => d.date === date);
+      const startDateRaw = row.start_date;
+      const startDateStr = typeof startDateRaw === 'string' ? startDateRaw : (startDateRaw instanceof Date ? startDateRaw.toISOString().slice(0, 10) : '');
+      const startTime = new Date(startDateStr + 'T00:00:00').getTime();
+      const requestTime = new Date(dateNorm + 'T00:00:00').getTime();
+      const dayIndex = Math.round((requestTime - startTime) / (24 * 60 * 60 * 1000));
+      const day = dayIndex >= 0 && dayIndex < days.length ? days[dayIndex] : days.find((d: any) => {
+        const dStr = d.date != null ? String(d.date).slice(0, 10) : '';
+        return dStr === dateNorm;
+      });
       if (!day?.meals) continue;
       for (const slot of Object.values(day.meals)) {
         const meal = Array.isArray(slot) ? slot : [slot];

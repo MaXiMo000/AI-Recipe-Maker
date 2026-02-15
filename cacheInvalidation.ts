@@ -31,6 +31,7 @@ export async function invalidateRecipe(recipeId: string, userId: string): Promis
 export async function invalidateMealPlan(mealPlanId: string, userId: string): Promise<void> {
   await cache.del(`${MEAL_PLAN_PREFIX}${mealPlanId}`);
   await cache.del(`${MEAL_PLANS_USER_PREFIX}${userId}`);
+  await invalidateNutritionDaily(userId);
 }
 
 /**
