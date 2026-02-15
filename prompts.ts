@@ -72,6 +72,38 @@ IMPORTANT: Return ONLY valid JSON in this exact structure:
 Based on the ingredients and nutrition, list 2–4 short health_benefits (e.g. good for eyes, bones, heart, digestion) and 0–3 health_concerns or cautions (e.g. high sodium, high sugar, processed – enjoy in moderation). Be factual and brief. Use empty array for health_concerns if there are none. Do not include ingredients the user is allergic to or that violate their dietary preferences.`;
 }
 
+/** Minimal recipe shape for health-only generation */
+export interface RecipeForHealth {
+  title: string;
+  ingredients: Array<{ name: string; amount?: number; unit?: string }>;
+  instructions: Array<{ step?: number; instruction: string }>;
+  nutritionalInfo?: { calories?: number; protein?: number; carbs?: number; fat?: number; sodium?: number; fiber?: number };
+}
+
+/**
+ * Build prompt to get only health_benefits and health_concerns for an existing recipe.
+ */
+export function buildHealthOnlyPrompt(recipe: RecipeForHealth): string {
+  const summary = {
+    title: recipe.title,
+    ingredients: recipe.ingredients.map((i) => (i.amount && i.unit ? `${i.name} (${i.amount} ${i.unit})` : i.name)),
+    instructions: recipe.instructions.map((s) => s.instruction),
+    nutritionalInfo: recipe.nutritionalInfo ?? undefined,
+  };
+  return `Given this recipe, return ONLY a JSON object with two arrays: health_benefits and health_concerns.
+
+Recipe:
+${JSON.stringify(summary, null, 2)}
+
+Based on the ingredients and any nutrition info, list 2–4 short health_benefits (e.g. good for eyes, bones, heart, digestion) and 0–3 health_concerns or cautions (e.g. high sodium, high sugar, processed – enjoy in moderation). Be factual and brief. Use empty array for health_concerns if there are none.
+
+Return ONLY valid JSON in this exact structure, no other text:
+{
+  "health_benefits": ["Short benefit 1", "Short benefit 2"],
+  "health_concerns": ["Short concern if any"] 
+}`;
+}
+
 /**
  * Build prompt for recipe modification
  */

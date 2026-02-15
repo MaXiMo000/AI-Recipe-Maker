@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from './environment';
 import { logger } from './logger';
 import { Recipe, UserPreferences, RecipeModifications, MealPlanGoals } from './recipe';
-import { buildRecipePrompt, buildModificationPrompt, buildMealPlanPrompt } from './prompts';
+import { buildRecipePrompt, buildModificationPrompt, buildMealPlanPrompt, buildHealthOnlyPrompt, type RecipeForHealth } from './prompts';
 import { generateFromGemini } from './geminiHelper';
 
 const useGemini = !!config.geminiApiKey;
@@ -163,6 +163,19 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
   /**
    * Strip markdown code fences and fix common invalid JSON from AI (e.g. fraction literals 1/4).
    */
+  /**
+   * Generate only health_benefits and health_concerns for an existing recipe (e.g. curated).
+   */
+  async generateHealthForRecipe(recipe: RecipeForHealth): Promise<{ healthBenefits: string[]; healthConcerns: string[] }> {
+    const prompt = buildHealthOnlyPrompt(recipe);
+    const text = await this.getAiText(prompt, 1024);
+    const cleanText = this.normalizeJsonText(text);
+    const parsed = JSON.parse(cleanText);
+    const benefits = Array.isArray(parsed.health_benefits) ? parsed.health_benefits : parsed.healthBenefits ?? [];
+    const concerns = Array.isArray(parsed.health_concerns) ? parsed.health_concerns : parsed.healthConcerns ?? [];
+    return { healthBenefits: benefits, healthConcerns: concerns };
+  }
+
   private normalizeJsonText(text: string): string {
     let out = text
       .replace(/^\s*```(?:json)?\s*\n?/i, '')

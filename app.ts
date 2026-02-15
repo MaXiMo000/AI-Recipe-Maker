@@ -43,6 +43,9 @@ class App {
   }
 
   private initializeMiddleware(): void {
+    // Trust first proxy (e.g. Render) so X-Forwarded-For is used for rate limiting and IP detection
+    this.app.set('trust proxy', 1);
+
     // Security
     this.app.use(helmet());
     this.app.use(cors({
