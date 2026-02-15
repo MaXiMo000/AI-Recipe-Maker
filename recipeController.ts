@@ -86,8 +86,8 @@ class RecipeController {
       `INSERT INTO recipes (
         user_id, title, description, cuisine_type, meal_type, difficulty,
         prep_time, cook_time, servings, ingredients, instructions,
-        nutritional_info, tags, source, is_public
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        nutritional_info, tags, health_benefits, health_concerns, source, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         userId,
@@ -103,6 +103,8 @@ class RecipeController {
         JSON.stringify(recipe.instructions),
         JSON.stringify(recipe.nutritionalInfo),
         JSON.stringify(recipe.tags),
+        JSON.stringify(recipe.healthBenefits ?? []),
+        JSON.stringify(recipe.healthConcerns ?? []),
         'ai_generated',
         false,
       ]
@@ -146,8 +148,8 @@ class RecipeController {
       `INSERT INTO recipes (
         user_id, title, description, cuisine_type, meal_type, difficulty,
         prep_time, cook_time, servings, ingredients, instructions,
-        nutritional_info, tags, source, is_public
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        nutritional_info, tags, health_benefits, health_concerns, source, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         userId,
@@ -163,6 +165,8 @@ class RecipeController {
         JSON.stringify(modifiedRecipe.instructions),
         JSON.stringify(modifiedRecipe.nutritionalInfo),
         JSON.stringify(modifiedRecipe.tags),
+        JSON.stringify(modifiedRecipe.healthBenefits ?? []),
+        JSON.stringify(modifiedRecipe.healthConcerns ?? []),
         'ai_generated',
         false,
       ]
@@ -327,8 +331,8 @@ class RecipeController {
       `INSERT INTO recipes (
         user_id, title, description, cuisine_type, meal_type, difficulty,
         prep_time, cook_time, servings, ingredients, instructions,
-        nutritional_info, tags, source, is_public
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        nutritional_info, tags, health_benefits, health_concerns, source, is_public
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         userId,
@@ -344,6 +348,8 @@ class RecipeController {
         JSON.stringify(recipeData.instructions),
         JSON.stringify(recipeData.nutritionalInfo),
         JSON.stringify(recipeData.tags || []),
+        JSON.stringify(recipeData.healthBenefits ?? []),
+        JSON.stringify(recipeData.healthConcerns ?? []),
         'user_created',
         recipeData.isPublic || false,
       ]
@@ -385,14 +391,18 @@ class RecipeController {
         description = COALESCE($2, description),
         ingredients = COALESCE($3, ingredients),
         instructions = COALESCE($4, instructions),
+        health_benefits = COALESCE($5, health_benefits),
+        health_concerns = COALESCE($6, health_concerns),
         updated_at = NOW()
-      WHERE id = $5
+      WHERE id = $7
       RETURNING *`,
       [
         updates.title,
         updates.description,
         updates.ingredients ? JSON.stringify(updates.ingredients) : null,
         updates.instructions ? JSON.stringify(updates.instructions) : null,
+        updates.healthBenefits != null ? JSON.stringify(updates.healthBenefits) : null,
+        updates.healthConcerns != null ? JSON.stringify(updates.healthConcerns) : null,
         id,
       ]
     );
@@ -517,6 +527,8 @@ class RecipeController {
       nutritionalInfo: row.nutritional_info,
       tags: row.tags,
       imageUrl: row.image_url,
+      healthBenefits: row.health_benefits ?? [],
+      healthConcerns: row.health_concerns ?? [],
       source: row.source ?? (row.user_id == null ? 'curated' : 'user_created'),
       isPublic: row.is_public,
       createdAt: row.created_at,

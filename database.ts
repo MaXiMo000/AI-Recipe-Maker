@@ -92,6 +92,8 @@ export const initializeSchema = async (): Promise<void> => {
       image_url TEXT,
       source VARCHAR(50) DEFAULT 'ai_generated',
       is_public BOOLEAN DEFAULT FALSE,
+      health_benefits JSONB DEFAULT '[]',
+      health_concerns JSONB DEFAULT '[]',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     );
@@ -179,6 +181,20 @@ export const initializeSchema = async (): Promise<void> => {
     // Allow curated recipes: user_id NULL = system/curated (read-only for all users)
     await query(`ALTER TABLE recipes ALTER COLUMN user_id DROP NOT NULL`).catch((err: Error) => {
       if (!String(err.message).includes('already')) logger.warn('recipes.user_id nullable:', err.message);
+    });
+    // Health pros/cons (for AI-generated and optionally curated)
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recipes' AND column_name = 'health_benefits') THEN
+          ALTER TABLE recipes ADD COLUMN health_benefits JSONB DEFAULT '[]';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recipes' AND column_name = 'health_concerns') THEN
+          ALTER TABLE recipes ADD COLUMN health_concerns JSONB DEFAULT '[]';
+        END IF;
+      END $$;
+    `).catch((err: Error) => {
+      logger.warn('recipes health columns migration:', err.message);
     });
   } catch (error) {
     logger.error('Failed to initialize schema:', error);

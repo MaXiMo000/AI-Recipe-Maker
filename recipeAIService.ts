@@ -205,6 +205,8 @@ Example: ["Pasta Carbonara", "Greek Salad", ...]
         instructions: parsed.instructions,
         nutritionalInfo: parsed.nutritionalInfo ?? parsed.nutritional_info,
         tags: parsed.tags || [],
+        healthBenefits: parsed.health_benefits ?? parsed.healthBenefits ?? [],
+        healthConcerns: parsed.health_concerns ?? parsed.healthConcerns ?? [],
         source: 'ai_generated',
         isPublic: false,
       };

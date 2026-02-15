@@ -58,10 +58,18 @@ IMPORTANT: Return ONLY valid JSON in this exact structure:
     "fiber": 5,
     "sodium": 600
   },
-  "tags": ["quick", "healthy", "comfort food"]
+  "tags": ["quick", "healthy", "comfort food"],
+  "health_benefits": [
+    "Short benefit 1 (e.g. Good for eyes – vitamin A from carrots)",
+    "Short benefit 2 (e.g. Heart-friendly fats)"
+  ],
+  "health_concerns": [
+    "Short concern if any (e.g. High sodium – limit if watching blood pressure)",
+    "Or leave empty [] if no significant concerns"
+  ]
 }
 
-Ensure all dietary restrictions and allergies are respected. Do not include any ingredients the user is allergic to or that violate their dietary preferences.`;
+Based on the ingredients and nutrition, list 2–4 short health_benefits (e.g. good for eyes, bones, heart, digestion) and 0–3 health_concerns or cautions (e.g. high sodium, high sugar, processed – enjoy in moderation). Be factual and brief. Use empty array for health_concerns if there are none. Do not include ingredients the user is allergic to or that violate their dietary preferences.`;
 }
 
 /**
@@ -102,7 +110,7 @@ export function buildModificationPrompt(
     prompt += `- Make healthier by reducing fat, sugar, and sodium\n`;
   }
 
-  prompt += `\nProvide the modified recipe in the same JSON format as the original.`;
+  prompt += `\nProvide the modified recipe in the same JSON format as the original, including health_benefits and health_concerns (short arrays of strings) based on the modified ingredients and nutrition.`;
   prompt += `\nEnsure all ingredient amounts are proportionally adjusted.`;
   prompt += `\nUpdate nutritional information to reflect the changes.`;
 

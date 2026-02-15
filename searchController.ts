@@ -21,6 +21,8 @@ function formatRecipeRow(row: Record<string, unknown>) {
     id: row.id,
     userId: row.user_id,
     isCurated: row.user_id == null,
+    healthBenefits: row.health_benefits ?? [],
+    healthConcerns: row.health_concerns ?? [],
     title: row.title,
     description: row.description,
     cuisineType: row.cuisine_type,

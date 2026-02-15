@@ -49,6 +49,9 @@ export function RecipeDetailPage() {
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const instructions = Array.isArray(recipe.instructions) ? recipe.instructions : [];
   const nutrition = recipe.nutritionalInfo || {};
+  const healthBenefits = Array.isArray(recipe.healthBenefits) ? recipe.healthBenefits : [];
+  const healthConcerns = Array.isArray(recipe.healthConcerns) ? recipe.healthConcerns : [];
+  const hasHealthNotes = healthBenefits.length > 0 || healthConcerns.length > 0;
   const totalMins = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);
   const metaItems = [recipe.cuisineType, recipe.mealType, recipe.difficulty].filter(Boolean);
 
@@ -122,6 +125,35 @@ export function RecipeDetailPage() {
               <div className="rounded-xl bg-rose-50/80 border border-rose-100 p-4 text-center">
                 <p className="text-xs font-semibold text-rose-800 uppercase tracking-wider">Fat</p>
                 <p className="text-2xl font-bold text-rose-900 mt-1">{nutrition.fat}g</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Health: benefits & concerns */}
+      {hasHealthNotes && (
+        <section className="mb-8">
+          <h2 className="section-heading">Health</h2>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] overflow-hidden divide-y divide-[var(--color-border)]">
+            {healthBenefits.length > 0 && (
+              <div className="p-4 sm:p-5">
+                <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">Benefits</p>
+                <ul className="list-disc list-inside space-y-1 text-content text-sm">
+                  {healthBenefits.map((item: string, i: number) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {healthConcerns.length > 0 && (
+              <div className="p-4 sm:p-5">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">Things to keep in mind</p>
+                <ul className="list-disc list-inside space-y-1 text-content text-sm">
+                  {healthConcerns.map((item: string, i: number) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

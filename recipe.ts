@@ -72,6 +72,10 @@ export interface Recipe {
   imageUrl?: string;
   source: 'ai_generated' | 'user_created' | 'imported' | 'curated';
   isPublic: boolean;
+  /** Short health benefits (e.g. "Good for eyes (vitamin A)", "Heart-friendly") */
+  healthBenefits?: string[];
+  /** Short health concerns or cautions (e.g. "High sodium – limit if watching blood pressure", "Processed – enjoy in moderation") */
+  healthConcerns?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }

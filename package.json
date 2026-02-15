@@ -13,9 +13,11 @@
     "seed": "node dist/scripts/seed.js",
     "seed:curated": "ts-node scripts/seedCuratedRecipes.ts",
     "seed:themealdb": "ts-node scripts/seedTheMealDB.ts",
+    "seed:themealdb:update": "ts-node scripts/updateTheMealDBRecipes.ts",
     "seed:import": "ts-node scripts/importRecipesFromJson.ts",
     "seed:curated:prod": "node dist/scripts/seedCuratedRecipes.js",
     "seed:themealdb:prod": "node dist/scripts/seedTheMealDB.js",
+    "seed:themealdb:update:prod": "node dist/scripts/updateTheMealDBRecipes.js",
     "seed:import:prod": "node dist/scripts/importRecipesFromJson.js"
   },
   "dependencies": {
