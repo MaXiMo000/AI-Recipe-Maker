@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { loadJsPDF } from '@/utils/downloadPdf';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { Loader } from '@/components/ui/Loader';
@@ -25,8 +26,9 @@ export function MealPlanDetailPage() {
   const { data: shoppingList } = useQuery({
     queryKey: ['meal-plan-shopping', id],
     queryFn: async () => {
-      const { data } = await api.get<{ success: boolean; data: any[] }>(`/meal-plans/${id}/shopping-list`);
-      return data.data;
+      const { data } = await api.get<{ success: boolean; data?: any[] }>(`/meal-plans/${id}/shopping-list`);
+      if (data?.data !== undefined && data?.data !== null) return data.data;
+      return [];
     },
     enabled: !!id,
   });
@@ -55,7 +57,9 @@ export function MealPlanDetailPage() {
   }
 
   const days = Array.isArray(plan.meals) ? plan.meals : [];
-  const list = Array.isArray(shoppingList) ? shoppingList : [];
+  const listFromApi = Array.isArray(shoppingList) ? shoppingList : [];
+  const listFromPlan = Array.isArray(plan.shoppingList) ? plan.shoppingList : [];
+  const list = listFromApi.length > 0 ? listFromApi : listFromPlan;
 
   const handleCopyShoppingList = async () => {
     try {
@@ -67,6 +71,51 @@ export function MealPlanDetailPage() {
       toast.success('Shopping list copied to clipboard');
     } catch {
       toast.error('Failed to copy list');
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (list.length === 0) return;
+    try {
+      const jsPDF = await loadJsPDF();
+      const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+      const margin = 20;
+      const lineHeight = 7;
+      let y = margin;
+
+      doc.setFontSize(18);
+      doc.text(`Shopping list – ${plan.name || 'Meal plan'}`, margin, y);
+      y += lineHeight + 2;
+
+      if (plan.startDate && plan.endDate) {
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(formatDateRange(plan.startDate, plan.endDate), margin, y);
+        y += lineHeight;
+        doc.setTextColor(0, 0, 0);
+      }
+
+      y += 4;
+      doc.setFontSize(11);
+
+      list.forEach((item: any, i: number) => {
+        if (y > 270) {
+          doc.addPage();
+          y = margin;
+        }
+        const amount = item.amount != null ? String(item.amount) : '';
+        const unit = (item.unit || '').trim();
+        const ingredient = (item.ingredient ?? '').toString().replace(/\|+$/, '').trim();
+        const line = `${i + 1}. ${[amount, unit, ingredient].filter(Boolean).join(' ')}`;
+        doc.text(line, margin, y);
+        y += lineHeight;
+      });
+
+      const safeName = (plan.name || 'shopping-list').replace(/[^a-z0-9-_]/gi, '-').slice(0, 50);
+      doc.save(`${safeName}.pdf`);
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Failed to download PDF');
     }
   };
 
@@ -140,13 +189,22 @@ export function MealPlanDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2 border-b-2 border-primary-100">
           <h2 className="section-heading mb-0 pb-0 border-0">Shopping list</h2>
           {list.length > 0 && (
-            <button
-              type="button"
-              onClick={handleCopyShoppingList}
-              className="btn-secondary text-sm py-2 min-h-[40px]"
-            >
-              Copy list
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                className="btn-primary text-sm py-2 min-h-[40px]"
+              >
+                Download PDF
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyShoppingList}
+                className="btn-secondary text-sm py-2 min-h-[40px]"
+              >
+                Copy list
+              </button>
+            </div>
           )}
         </div>
         <ul className="rounded-2xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] divide-y divide-[var(--color-border)] overflow-hidden">

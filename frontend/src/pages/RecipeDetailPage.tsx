@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { loadJsPDF } from '@/utils/downloadPdf';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { RecipeDetailSkeleton } from '@/components/RecipeDetailSkeleton';
@@ -95,8 +96,6 @@ export function RecipeDetailPage() {
   const totalMins = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);
   const metaItems = [recipe.cuisineType, recipe.mealType, recipe.difficulty].filter(Boolean);
 
-  const handlePrint = () => window.print();
-
   const handleShare = async () => {
     const url = window.location.href;
     const title = recipe.title || 'Recipe';
@@ -118,64 +117,170 @@ export function RecipeDetailPage() {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      const jsPDF = await loadJsPDF();
+      const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+      const margin = 20;
+      const pageW = 210;
+      const maxW = pageW - margin * 2;
+      const lineHeight = 6;
+      const smallLine = 5;
+      let y = margin;
+
+      const pushY = (dy: number) => {
+        y += dy;
+        if (y > 275) {
+          doc.addPage();
+          y = margin;
+        }
+      };
+
+      const title = recipe.title || 'Recipe';
+      doc.setFontSize(18);
+      doc.text(title, margin, y);
+      pushY(lineHeight + 4);
+
+      if (recipe.description) {
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        const descLines = doc.splitTextToSize(recipe.description, maxW);
+        doc.text(descLines, margin, y);
+        pushY(descLines.length * lineHeight + 4);
+        doc.setTextColor(0, 0, 0);
+      }
+
+      if (metaItems.length > 0 || totalMins > 0) {
+        doc.setFontSize(9);
+        const meta = [...metaItems, totalMins > 0 ? `${totalMins} min` : ''].filter(Boolean).join(' · ');
+        doc.text(meta, margin, y);
+        pushY(lineHeight + 4);
+      }
+
+      doc.setFontSize(11);
+      doc.text('Nutrition (per serving)', margin, y);
+      pushY(lineHeight + 2);
+      if (Object.keys(nutrition).length > 0) {
+        doc.setFontSize(9);
+        const nutrParts: string[] = [];
+        if (nutrition.calories != null) nutrParts.push(`Calories: ${nutrition.calories}`);
+        if (nutrition.protein != null) nutrParts.push(`Protein: ${nutrition.protein}g`);
+        if (nutrition.carbs != null) nutrParts.push(`Carbs: ${nutrition.carbs}g`);
+        if (nutrition.fat != null) nutrParts.push(`Fat: ${nutrition.fat}g`);
+        doc.text(nutrParts.join('  |  '), margin, y);
+        pushY(lineHeight + 4);
+      } else {
+        doc.setFontSize(9);
+        doc.text('—', margin, y);
+        pushY(lineHeight + 4);
+      }
+
+      doc.setFontSize(12);
+      doc.text('Ingredients', margin, y);
+      pushY(lineHeight + 2);
+      doc.setFontSize(10);
+      if (ingredients.length === 0) {
+        doc.text('No ingredients listed.', margin, y);
+        pushY(lineHeight + 4);
+      } else {
+        ingredients.forEach((ing: any, i: number) => {
+          const line =
+            typeof ing === 'string'
+              ? `${i + 1}. ${ing}`
+              : `${i + 1}. ${[ing.amount, ing.unit, ing.name || ing.ingredient].filter(Boolean).join(' ')}`;
+          const lines = doc.splitTextToSize(line, maxW);
+          lines.forEach((l: string) => {
+            doc.text(l, margin, y);
+            pushY(smallLine);
+          });
+        });
+        pushY(2);
+      }
+
+      doc.setFontSize(12);
+      doc.text('Instructions', margin, y);
+      pushY(lineHeight + 2);
+      doc.setFontSize(10);
+      instructions.forEach((item: { instruction?: string; text?: string } | string, i: number) => {
+        const text = typeof item === 'string' ? item : (item.instruction ?? (item as any).text ?? '');
+        const block = `${i + 1}. ${text}`;
+        const lines = doc.splitTextToSize(block, maxW);
+        lines.forEach((l: string) => {
+          doc.text(l, margin, y);
+          pushY(smallLine);
+        });
+        pushY(2);
+      });
+
+      const safeName = title.replace(/[^a-z0-9-_]/gi, '-').slice(0, 50);
+      doc.save(`${safeName}.pdf`);
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Failed to download PDF');
+    }
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto pb-12" {...swipeHandlers}>
       {/* Back + actions (hidden when printing) */}
-      <div className="no-print flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
-        <Link
-          to="/recipes"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50"
-        >
-          <span aria-hidden>←</span>
-          Recipes
-        </Link>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button type="button" onClick={handlePrint} className="btn-secondary text-sm py-2 min-h-[40px]">
-            Print
-          </button>
-          <button type="button" onClick={handleShare} className="btn-secondary text-sm py-2 min-h-[40px]">
-            Share
-          </button>
-          {user && (
-            <>
-              <button
-                type="button"
-                onClick={() => setCollectionOpen(true)}
-                className="btn-secondary text-sm py-2 min-h-[40px]"
-              >
-                Add to collection
-              </button>
-              <FavoriteButton
-              recipeId={recipe.id!}
-              isFavorite={recipe.isFavorite ?? false}
-              variant="detail"
-              stopPropagation={false}
-            />
-            </>
-          )}
-          {!recipe.isCurated && (
-            <>
-              <Link to={`/recipes/${id}/edit`} className="btn-secondary text-sm py-2 min-h-[40px] inline-flex items-center justify-center">
-                Edit
-              </Link>
-              <button
-                type="button"
-                onClick={() => setModifyOpen(true)}
-                disabled={modifyMutation.isPending}
-                className="btn-secondary text-sm py-2 min-h-[40px]"
-              >
-                Modify
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                disabled={deleteMutation.isPending}
-                className="btn-danger text-sm py-2 min-h-[40px]"
-              >
-                Delete
-              </button>
-            </>
-          )}
+      <div className="no-print mb-4 sm:mb-6">
+        {/* Mobile: stack back link then 2-col button grid; desktop: single row */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <Link
+            to="/recipes"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors rounded-lg px-3 py-2 -ml-2 hover:bg-primary-50 self-start"
+          >
+            <span aria-hidden>←</span>
+            Recipes
+          </Link>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:grid-cols-none">
+            <button type="button" onClick={handleDownloadPdf} className="btn-primary text-sm py-2.5 min-h-[44px] sm:min-h-[40px]">
+              Download PDF
+            </button>
+            <button type="button" onClick={handleShare} className="btn-secondary text-sm py-2.5 min-h-[44px] sm:min-h-[40px]">
+              Share
+            </button>
+            {user && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCollectionOpen(true)}
+                  className="btn-secondary text-sm py-2.5 min-h-[44px] sm:min-h-[40px]"
+                >
+                  Add to collection
+                </button>
+                <FavoriteButton
+                  recipeId={recipe.id!}
+                  isFavorite={recipe.isFavorite ?? false}
+                  variant="detail"
+                  stopPropagation={false}
+                />
+              </>
+            )}
+            {!recipe.isCurated && (
+              <>
+                <Link to={`/recipes/${id}/edit`} className="btn-secondary text-sm py-2.5 min-h-[44px] sm:min-h-[40px] inline-flex items-center justify-center">
+                  Edit
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setModifyOpen(true)}
+                  disabled={modifyMutation.isPending}
+                  className="btn-secondary text-sm py-2.5 min-h-[44px] sm:min-h-[40px]"
+                >
+                  Modify
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(true)}
+                  disabled={deleteMutation.isPending}
+                  className="btn-danger text-sm py-2.5 min-h-[44px] sm:min-h-[40px] col-span-2 sm:col-span-1"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
