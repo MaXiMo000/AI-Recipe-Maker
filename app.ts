@@ -127,7 +127,9 @@ class App {
       const err = error instanceof Error ? error : new Error(String(error));
       console.error('[FATAL] Failed to start server:', err.message);
       console.error(err.stack ?? err);
-      try { logger.error('Failed to start server:', error); } catch (_) {}
+      // Deliberately swallowed: if the logger itself is what failed, the
+    // original startup error above is the one that matters.
+    try { logger.error('Failed to start server:', error); } catch { /* ignore */ }
       process.exit(1);
     }
   }

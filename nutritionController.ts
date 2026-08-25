@@ -123,7 +123,7 @@ class NutritionController {
   calculate = asyncHandler(async (req: AuthRequest, res: Response) => {
     const body = calculateSchema.parse(req.body);
     // MVP: simple estimated nutrition per ingredient (no external API)
-    let total = emptyNutrition();
+    const total = emptyNutrition();
     for (const ing of body.ingredients) {
       const qty = ing.amount || 1;
       total.calories += 50 * qty;

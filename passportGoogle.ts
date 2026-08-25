@@ -31,7 +31,12 @@ export function initPassportGoogle(): typeof passportInstance {
   }
 
   try {
+    // Lazily required on purpose: Google OAuth is optional, and a static
+    // import would make passport-google-oauth20 a hard dependency that
+    // breaks startup when it is not installed.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const passport = require('passport');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 
     passport.use(

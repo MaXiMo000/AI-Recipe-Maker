@@ -231,8 +231,8 @@ class RecipeController {
     } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
-    let whereConditions: string[] = [];
-    let params: any[] = [];
+    const whereConditions: string[] = [];
+    const params: any[] = [];
     let paramIndex = 1;
 
     // Allowed sort/order (whitelist to avoid SQL injection)

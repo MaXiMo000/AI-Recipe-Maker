@@ -4,6 +4,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Drop privileges. A process that only serves requests has no need for
+# root, and a container escape starts from whatever the process is.
+USER node
+
 EXPOSE 5000
 # Default CMD; override in docker-compose.dev.yml with nodemon
 CMD ["npx", "nodemon", "--exec", "npx ts-node app.ts", "--ext", "ts"]

@@ -4,5 +4,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Drop privileges. A process that only serves requests has no need for
+# root, and a container escape starts from whatever the process is.
+USER node
+
 EXPOSE 3000
 CMD ["npm", "run", "dev"]

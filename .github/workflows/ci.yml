@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # `npm run build` is tsc, so this is the same check without emitting.
+      - run: npm run typecheck
+      # The lint script used to point at src/**/*.ts, a directory that does not
+      # exist -- the TypeScript is at the repo root. There was also no eslint
+      # config at all, so the script could never have run.
+      - run: npm run lint
+      - run: npm run build
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  images:
+    # Every Dockerfile ran as root. These assert the final stage does not.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Backend image runs as a non-root user
+        run: |
+          set -euo pipefail
+          docker build -q -t arm-backend:ci .
+          uid=$(docker run --rm --entrypoint id arm-backend:ci -u)
+          echo "backend uid: $uid"
+          test "$uid" != "0"
+      - name: Frontend image runs as a non-root user and still serves
+        run: |
+          set -euo pipefail
+          docker build -q -t arm-frontend:ci ./frontend
+          uid=$(docker run --rm --entrypoint id arm-frontend:ci -u)
+          echo "frontend uid: $uid"
+          test "$uid" != "0"
+          docker run -d --name fe -p 3000:3000 arm-frontend:ci
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          test "$code" = "200"
+
+  carabiner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: pip install carabiner-sec
+      - run: carabiner scan --all --fail-on high
