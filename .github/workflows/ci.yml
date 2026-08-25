@@ -25,6 +25,10 @@ jobs:
       # config at all, so the script could never have run.
       - run: npm run lint
       - run: npm run build
+      # There were no tests and no jest config; `npm test` exited 1 with
+      # "No tests found". These cover the two things worth covering first:
+      # the admin shared-secret guard and the token middleware.
+      - run: npm test
 
   frontend:
     runs-on: ubuntu-latest
