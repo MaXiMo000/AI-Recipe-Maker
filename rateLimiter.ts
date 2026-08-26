@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import { getRedisClient } from './redis';
 import { config } from './environment';
 import { logger } from './logger';
 import { sendError } from './responseHelper';
@@ -71,44 +70,3 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   handler: rateLimitHandler,
 });
-
-/**
- * Redis-based rate limiter for more complex scenarios
- */
-export class RedisRateLimiter {
-  private windowMs: number;
-  private maxRequests: number;
-
-  constructor(windowMs: number, maxRequests: number) {
-    this.windowMs = windowMs;
-    this.maxRequests = maxRequests;
-  }
-
-  async checkLimit(key: string): Promise<{ allowed: boolean; remaining: number }> {
-    const redis = getRedisClient();
-    const now = Date.now();
-    const windowStart = now - this.windowMs;
-
-    try {
-      // Remove old entries
-      await redis.zRemRangeByScore(key, 0, windowStart);
-
-      // Count requests in current window
-      const count = await redis.zCard(key);
-
-      if (count >= this.maxRequests) {
-        return { allowed: false, remaining: 0 };
-      }
-
-      // Add current request
-      await redis.zAdd(key, { score: now, value: `${now}` });
-      await redis.expire(key, Math.ceil(this.windowMs / 1000));
-
-      return { allowed: true, remaining: this.maxRequests - count - 1 };
-    } catch (error) {
-      logger.error('Redis rate limiter error:', error);
-      // Allow request on error to avoid blocking legitimate users
-      return { allowed: true, remaining: this.maxRequests };
-    }
-  }
-}
